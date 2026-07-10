@@ -4,13 +4,15 @@ import { SOCKET_EVENTS } from '../../../packages/shared/src/index';
 import type { SlashCommandType } from '../types';
 
 const EXPRESSION_CHOICES = [
-  { name: '기본', value: '#기본' },
-  { name: '웃음', value: '#웃음' },
-  { name: '슬픔', value: '#슬픔' },
-  { name: '분노', value: '#분노' },
-  { name: '전투', value: '#전투' },
-  { name: '놀람', value: '#놀람' },
-  { name: '생각', value: '#생각' },
+  { name: 'Neutral', value: '#Neutral' },
+  { name: 'Happy', value: '#Happy' },
+  { name: 'Sad', value: '#Sad' },
+  { name: 'Angry', value: '#Angry' },
+  { name: 'Surprised', value: '#Surprised' },
+  { name: 'Embarrassed', value: '#Embarrassed' },
+  { name: 'Scared', value: '#Scared' },
+  { name: 'Thinking', value: '#Thinking' },
+  { name: 'Custom', value: '#Custom' },
 ];
 
 export default {

@@ -65,15 +65,16 @@
     .char-slot.speaking { transform: translateY(-20px); }
     .char-slot.speaking[data-pos="2"] { transform: translateX(-50%) translateY(-20px); }
 
-    .char-avatar {
-      width: 100px; height: 100px;
-      border-radius: 50%; object-fit: cover;
-      border: 3px solid rgba(148,155,164,0.4);
-      box-shadow: 0 0 20px rgba(148,155,164,0.3);
+    .char-composite { position: relative; display: inline-block; max-height: 85vh; }
+    .char-base { max-height: 85vh; width: auto; object-fit: contain; object-position: bottom; display: block; }
+    .char-face { position: absolute; max-width: 100%; pointer-events: none; }
+    .char-fallback {
+      width: 120px; height: 120px; border-radius: 50%; object-fit: cover;
+      border: 3px solid rgba(148,155,164,0.4); box-shadow: 0 0 20px rgba(148,155,164,0.3);
+      margin-bottom: 8px;
     }
-    .char-slot.speaking .char-avatar {
-      border-color: var(--accent);
-      box-shadow: 0 0 30px rgba(148,155,164,0.6);
+    .char-slot.speaking .char-fallback {
+      border-color: var(--accent); box-shadow: 0 0 30px rgba(148,155,164,0.6);
     }
     .char-name-tag {
       margin-top: 6px; padding: 2px 10px;
@@ -280,6 +281,73 @@
       transition: all 0.2s; cursor: pointer;
     }
     .session-btn:hover { background: rgba(148,155,164,0.15); border-color: var(--accent); }
+    
+    /* ── 모달 (아바타 설정) ───────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000;
+      display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px);
+    }
+    .modal-content {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+      width: 400px; max-width: 90%; color: var(--text1); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+    .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+    .modal-footer { padding: 16px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+    .modal-close { cursor: pointer; color: var(--text2); font-size: 1.2rem; }
+    .modal-close:hover { color: var(--text1); }
+    .input-group { display: flex; flex-direction: column; gap: 6px; }
+    .input-group label { font-size: 0.85rem; color: var(--text2); }
+    .input-group input, .input-group select {
+      background: rgba(0,0,0,0.3); border: 1px solid var(--border); color: var(--text1);
+      padding: 8px 12px; border-radius: 6px; outline: none; transition: border 0.2s;
+    }
+    .input-group input:focus, .input-group select:focus { border-color: var(--accent); }
+    .btn { padding: 8px 16px; border-radius: 6px; font-weight: 500; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
+    .btn-secondary { background: rgba(255,255,255,0.06); color: var(--text1); border-color: var(--border); }
+    .btn-secondary:hover { background: rgba(255,255,255,0.1); }
+    .btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+    .btn-primary:hover { filter: brightness(1.1); }
+    
+    /* ── 캐릭터 설정 스크린 (데모) ─────────────────── */
+    #char-settings-screen {
+      position: fixed; inset: 0; z-index: 1000;
+      background: var(--bg); color: var(--text1);
+      display: none; flex-direction: column; overflow: hidden;
+    }
+    .char-settings-main { display: flex; flex: 1; overflow: hidden; }
+    .char-sidebar { width: 250px; background: var(--panel); border-right: 1px solid var(--border); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .char-item { padding: 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: background 0.2s; }
+    .char-item:hover { background: rgba(255,255,255,0.05); }
+    .char-item.active { background: rgba(255,255,255,0.1); border: 1px solid var(--accent); }
+    .char-item-img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: #000; }
+    
+    .char-content { flex: 1; display: flex; flex-direction: column; background: var(--bg); overflow: hidden; }
+    .char-tabs { display: flex; border-bottom: 1px solid var(--border); }
+    .char-tab { padding: 16px 24px; cursor: pointer; border-bottom: 2px solid transparent; color: var(--text2); transition: all 0.2s; font-weight: 500; }
+    .char-tab:hover { color: var(--text1); }
+    .char-tab.active { color: var(--text1); border-bottom-color: var(--accent); }
+    
+    .char-tab-content { flex: 1; padding: 24px; overflow-y: auto; display: none; }
+    .char-tab-content.active { display: flex; flex-direction: column; gap: 24px; }
+    
+    .anchor-picker-wrap { position: relative; display: inline-block; cursor: crosshair; box-shadow: 0 4px 12px rgba(0,0,0,0.5); max-height: 500px; }
+    .anchor-picker-wrap img { max-height: 500px; display: block; object-fit: contain; }
+    .anchor-marker {
+      position: absolute; transform: translate(-50%, -50%); pointer-events: none;
+      width: 32px; height: 32px; border-radius: 50%; border: 2px solid #f23f42;
+      background: rgba(242,63,66,0.2); box-shadow: 0 0 10px rgba(242,63,66,0.8);
+    }
+    .anchor-marker::before { content: ''; position: absolute; left: 50%; top: -10px; bottom: -10px; width: 1px; background: #f23f42; transform: translateX(-50%); }
+    .anchor-marker::after { content: ''; position: absolute; top: 50%; left: -10px; right: -10px; height: 1px; background: #f23f42; transform: translateY(-50%); }
+    
+    .face-grid-preview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px; }
+    .face-slot { background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+    .face-slot img { max-width: 100%; height: auto; border-radius: 4px; background: #111; }
+    
+    .upload-zone { border: 2px dashed #4f545c; border-radius: 8px; padding: 24px; text-align: center; cursor: pointer; transition: background 0.2s; position: relative; }
+    .upload-zone:hover { background: rgba(255,255,255,0.02); }
+    .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -292,7 +360,7 @@
     </div>
     <div class="topbar-right">
       <button class="btn-ghost" title="종합 설정">⚙</button>
-      <button class="btn-ghost" title="내 캐릭터 관리" onclick="window.location.href='http://localhost:3000/dashboard/character'">🧑</button>
+      <button class="btn-ghost" title="내 캐릭터 관리" onclick="openAvatarModal()">🧑</button>
     </div>
   </header>
   <main class="dashboard-main">
@@ -321,6 +389,75 @@
       </div>
     </div>
   </main>
+</div>
+
+<!-- 캐릭터 설정 스크린 -->
+<div id="char-settings-screen">
+  <header class="topbar">
+    <div class="topbar-logo">
+      <span style="color: var(--accent);">🧑</span> 캐릭터 설정 (데모)
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-secondary" onclick="closeAvatarModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveAvatar()">적용하고 닫기</button>
+    </div>
+  </header>
+  <div class="char-settings-main">
+    <div class="char-sidebar" id="char-sidebar">
+      <!-- JS로 캐릭터 리스트 렌더링 -->
+    </div>
+    <div class="char-content">
+      <div class="char-tabs">
+        <div class="char-tab active" onclick="switchCharTab('base', event)">기본 몸통 & 앵커 지정</div>
+        <div class="char-tab" onclick="switchCharTab('face', event)">표정 템플릿 분할</div>
+      </div>
+      
+      <!-- 탭: Base & Anchor -->
+      <div id="tab-base" class="char-tab-content active">
+        <div style="display: flex; gap: 24px; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 16px;">
+            <div class="input-group">
+              <label>몸통(Base) 이미지 업로드 (권장 800x2160)</label>
+              <div class="upload-zone">
+                <input type="file" accept="image/*" id="upload-base-img" onchange="handleBaseUpload(event)" />
+                <div style="font-size: 2rem; color: #949ba4;">📁</div>
+                <div style="color: var(--text1); margin-top: 8px;">클릭하여 이미지 파일 선택</div>
+              </div>
+            </div>
+            <div class="input-group">
+              <label>현재 앵커(얼굴) 위치 (%)</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="number" id="anchor-input-x" step="0.1" value="50.0" onchange="onAnchorManualInput()" style="flex: 1;" placeholder="X" />
+                <input type="number" id="anchor-input-y" step="0.1" value="10.0" onchange="onAnchorManualInput()" style="flex: 1;" placeholder="Y" />
+              </div>
+              <div style="font-size: 0.8rem; color: var(--text2); margin-top: 4px;">우측 이미지에서 클릭하거나 직접 숫자를 입력하세요.</div>
+            </div>
+          </div>
+          
+          <div style="flex: 2; min-width: 300px; display: flex; justify-content: center; align-items: flex-start; background: #1e1f22; border-radius: 8px; padding: 16px; border: 1px solid var(--border);">
+            <div class="anchor-picker-wrap" id="anchor-picker" onclick="onAnchorClick(event)">
+              <img id="anchor-preview-img" src="" style="display:none;" />
+              <div class="anchor-marker" id="anchor-marker" style="display:none;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 탭: Face Grid -->
+      <div id="tab-face" class="char-tab-content">
+        <div class="input-group">
+          <label>표정 템플릿 (2400x3240 권장) 업로드 및 자동 분할</label>
+          <div class="upload-zone" style="padding: 12px;">
+            <input type="file" accept="image/*" id="upload-face-grid" onchange="handleFaceUpload(event)" />
+            <div style="color: var(--text1);">클릭하여 표정 그리드 이미지 업로드</div>
+          </div>
+        </div>
+        <div class="face-grid-preview" id="face-grid-container">
+          <!-- JS로 9조각 슬롯 렌더링 -->
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- 비주얼 노벨 뷰어 -->
@@ -381,11 +518,17 @@
       <button class="demo-btn" onclick="pushDialogue('캐릭터 B', '자동 진행 모드를 켜면 클릭 없이도 대화가 진행됩니다! 😊')">캐릭터 B</button>
     </div>
 
-    <div class="demo-section-label">EXPRESSION</div>
+    <div class="demo-section-label">EXPRESSION (캐릭터 A)</div>
     <div class="demo-btn-row">
-      <button class="demo-btn" onclick="changeExpression('캐릭터 A', '😊')">😊 캐릭터 A 웃음</button>
-      <button class="demo-btn" onclick="changeExpression('캐릭터 A', '😢')">😢 캐릭터 A 슬픔</button>
-      <button class="demo-btn" onclick="changeExpression('캐릭터 B', '😡')">😡 캐릭터 B 분노</button>
+      <button class="demo-btn" onclick="changeExpression('캐릭터 A', 'Neutral')">😐 Neutral</button>
+      <button class="demo-btn" onclick="changeExpression('캐릭터 A', 'Happy')">😊 Happy</button>
+      <button class="demo-btn" onclick="changeExpression('캐릭터 A', 'Sad')">😢 Sad</button>
+      <button class="demo-btn" onclick="changeExpression('캐릭터 A', 'Angry')">😡 Angry</button>
+      <button class="demo-btn" onclick="changeExpression('캐릭터 A', 'Surprised')">😲 Surprised</button>
+      <button class="demo-btn" onclick="changeExpression('캐릭터 A', 'Embarrassed')">😳 Embarrassed</button>
+      <button class="demo-btn" onclick="changeExpression('캐릭터 A', 'Scared')">😨 Scared</button>
+      <button class="demo-btn" onclick="changeExpression('캐릭터 A', 'Thinking')">🤔 Thinking</button>
+      <button class="demo-btn" onclick="changeExpression('캐릭터 A', 'Custom')">✨ Custom</button>
     </div>
 
     <!-- 추가 컴포넌트 생략 -->
@@ -429,10 +572,222 @@ const state = {
   players: [], // TRPG 기능 보류
 
   chars: [
-    { id: 'ariel', name: '캐릭터 A',  pos: 1, avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Ariel&backgroundColor=b6e3f4', speaking: false },
-    { id: 'leon',  name: '캐릭터 B',   pos: 3, avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Leon&backgroundColor=ffdfbf', speaking: false },
+    { 
+      id: 'ariel', name: '캐릭터 A', pos: 1, 
+      avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Ariel&backgroundColor=b6e3f4', 
+      baseImage: '', anchorX: 50.0, anchorY: 10.0,
+      expressions: { 'Neutral': '', 'Happy': '', 'Sad': '', 'Angry': '', 'Surprised': '', 'Embarrassed': '', 'Scared': '', 'Thinking': '', 'Custom': '' },
+      currentExpr: 'Neutral', speaking: false 
+    },
+    { 
+      id: 'leon', name: '캐릭터 B', pos: 3, 
+      avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Leon&backgroundColor=ffdfbf', 
+      baseImage: '', anchorX: 50.0, anchorY: 10.0,
+      expressions: { 'Neutral': '', 'Happy': '', 'Sad': '', 'Angry': '', 'Surprised': '', 'Embarrassed': '', 'Scared': '', 'Thinking': '', 'Custom': '' },
+      currentExpr: 'Neutral', speaking: false 
+    },
   ],
 };
+
+// ══════════════════════════════════════════════════
+// 캐릭터 설정 스크린 로직
+// ══════════════════════════════════════════════════
+let editingCharId = 0;
+
+function openAvatarModal() {
+  document.getElementById('dashboard-screen').style.display = 'none';
+  document.getElementById('vn-viewer').style.display = 'none';
+  document.getElementById('char-settings-screen').style.display = 'flex';
+  
+  loadCharEditor(0);
+}
+
+function closeAvatarModal() {
+  document.getElementById('char-settings-screen').style.display = 'none';
+  document.getElementById('dashboard-screen').style.display = 'flex';
+}
+
+function renderSidebar() {
+  const sidebar = document.getElementById('char-sidebar');
+  sidebar.innerHTML = '<h3 style="font-size:0.8rem;color:var(--text2);margin-bottom:8px;">내 캐릭터 목록</h3>';
+  state.chars.forEach((c, idx) => {
+    const div = document.createElement('div');
+    div.className = `char-item ${idx === editingCharId ? 'active' : ''}`;
+    div.onclick = () => loadCharEditor(idx);
+    div.innerHTML = `
+      <img src="${c.avatar}" class="char-item-img" />
+      <span style="font-weight: 500;">${c.name}</span>
+    `;
+    sidebar.appendChild(div);
+  });
+}
+
+function loadCharEditor(idx) {
+  editingCharId = idx;
+  renderSidebar();
+  
+  const char = state.chars[idx];
+  
+  // Base Preview
+  const previewImg = document.getElementById('anchor-preview-img');
+  const marker = document.getElementById('anchor-marker');
+  const inputX = document.getElementById('anchor-input-x');
+  const inputY = document.getElementById('anchor-input-y');
+  
+  if (char.baseImage) {
+    previewImg.src = char.baseImage;
+    previewImg.style.display = 'block';
+    marker.style.display = 'block';
+    marker.style.left = char.anchorX + '%';
+    marker.style.top = char.anchorY + '%';
+    if(inputX) inputX.value = char.anchorX.toFixed(1);
+    if(inputY) inputY.value = char.anchorY.toFixed(1);
+  } else {
+    previewImg.src = '';
+    previewImg.style.display = 'none';
+    marker.style.display = 'none';
+    if(inputX) inputX.value = '';
+    if(inputY) inputY.value = '';
+  }
+  
+  renderFaceGridSlots();
+}
+
+function switchCharTab(tab, event) {
+  document.querySelectorAll('.char-tab').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.char-tab-content').forEach(el => el.classList.remove('active'));
+  
+  event.currentTarget.classList.add('active');
+  document.getElementById(`tab-${tab}`).classList.add('active');
+}
+
+function handleBaseUpload(e) {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    state.chars[editingCharId].baseImage = ev.target.result;
+    loadCharEditor(editingCharId);
+  };
+  reader.readAsDataURL(file);
+}
+
+function onAnchorClick(e) {
+  const img = document.getElementById('anchor-preview-img');
+  if(!img || img.style.display === 'none') return;
+  
+  const rect = img.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  if(x < 0 || y < 0 || x > rect.width || y > rect.height) return;
+  
+  const pctX = (x / rect.width) * 100;
+  const pctY = (y / rect.height) * 100;
+  
+  state.chars[editingCharId].anchorX = pctX;
+  state.chars[editingCharId].anchorY = pctY;
+  
+  loadCharEditor(editingCharId);
+}
+
+function onAnchorManualInput() {
+  const inputX = document.getElementById('anchor-input-x');
+  const inputY = document.getElementById('anchor-input-y');
+  if(!inputX || !inputY) return;
+  
+  state.chars[editingCharId].anchorX = parseFloat(inputX.value) || 0;
+  state.chars[editingCharId].anchorY = parseFloat(inputY.value) || 0;
+  
+  loadCharEditor(editingCharId);
+}
+
+function handleFaceUpload(e) {
+  const file = e.target.files[0];
+  if(!file) return;
+  
+  showToast('이미지 분할 중...', 'info');
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    const pieceW = Math.floor(img.width / 3);
+    const pieceH = Math.floor(img.height / 3);
+    canvas.width = pieceW;
+    canvas.height = pieceH;
+    
+    const defaultTags = ['Neutral', 'Happy', 'Sad', 'Angry', 'Surprised', 'Embarrassed', 'Scared', 'Thinking', 'Custom'];
+    const char = state.chars[editingCharId];
+    
+    for(let r=0; r<3; r++) {
+      for(let c=0; c<3; c++) {
+        ctx.clearRect(0,0,pieceW,pieceH);
+        ctx.drawImage(img, c*pieceW, r*pieceH, pieceW, pieceH, 0, 0, pieceW, pieceH);
+        const dataUrl = canvas.toDataURL('image/png');
+        const tag = defaultTags[r*3 + c];
+        char.expressions[tag] = dataUrl;
+      }
+    }
+    
+    URL.revokeObjectURL(url);
+    showToast('9조각 분할 완료!', 'success');
+    renderFaceGridSlots();
+  };
+  img.src = url;
+}
+
+function renderFaceGridSlots() {
+  const container = document.getElementById('face-grid-container');
+  if(!container) return;
+  
+  container.innerHTML = '';
+  const char = state.chars[editingCharId];
+  const tags = Object.keys(char.expressions).filter(t => char.expressions[t]);
+  
+  if(tags.length === 0) {
+    container.innerHTML = '<div style="grid-column: span 3; text-align: center; color: var(--text2); padding: 40px;">등록된 표정이 없습니다. 템플릿을 업로드하세요.</div>';
+    return;
+  }
+  
+  const possibleTags = ['Neutral', 'Happy', 'Sad', 'Angry', 'Surprised', 'Embarrassed', 'Scared', 'Thinking', 'Custom', 'Ignore'];
+  
+  tags.forEach(tag => {
+    const div = document.createElement('div');
+    div.className = 'face-slot';
+    
+    let optionsHtml = '';
+    possibleTags.forEach(pt => {
+      optionsHtml += `<option value="${pt}" ${tag===pt?'selected':''}>${pt}</option>`;
+    });
+    
+    div.innerHTML = `
+      <img src="${char.expressions[tag]}" />
+      <div class="input-group" style="width: 100%;">
+        <select onchange="updateFaceTag('${tag}', this.value)">
+          <option value="${tag}">${tag} (현재)</option>
+          ${optionsHtml}
+        </select>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function updateFaceTag(oldTag, newTag) {
+  if(oldTag === newTag) return;
+  const char = state.chars[editingCharId];
+  char.expressions[newTag] = char.expressions[oldTag];
+  delete char.expressions[oldTag];
+  renderFaceGridSlots();
+}
+
+function saveAvatar() {
+  renderChars();
+  closeAvatarModal();
+  showToast('캐릭터 설정이 저장되었습니다.', 'success');
+}
 
 // ══════════════════════════════════════════════════
 // 시작
@@ -499,10 +854,17 @@ function renderChars() {
     div.className = 'char-slot ' + (c.speaking ? 'speaking' : 'idle');
     div.setAttribute('data-pos', c.pos);
     div.setAttribute('data-id', c.id);
-    div.innerHTML = `
-      <img class="char-avatar" src="${c.avatar}" alt="${c.name}" />
-      <span class="char-name-tag">${c.name}</span>
-    `;
+    
+    let imgHtml = '';
+    if (c.baseImage) {
+      const faceUrl = c.expressions[c.currentExpr] || c.expressions['Neutral'] || '';
+      const faceHtml = faceUrl ? `<img src="${faceUrl}" class="char-face" style="left: ${c.anchorX}%; top: ${c.anchorY}%; transform: translate(-50%, -50%);" />` : '';
+      imgHtml = `<div class="char-composite"><img src="${c.baseImage}" class="char-base" />${faceHtml}</div>`;
+    } else {
+      imgHtml = `<img class="char-fallback" src="${c.avatar}" alt="${c.name}" />`;
+    }
+    
+    div.innerHTML = `${imgHtml}<span class="char-name-tag">${c.name}</span>`;
     wrap.appendChild(div);
   });
 }
@@ -512,10 +874,15 @@ function setSpeaker(name) {
   renderChars();
 }
 
-function changeExpression(charName, emoji) {
+function changeExpression(charName, exprName) {
+  state.chars.forEach(c => {
+    if (c.name === charName) {
+      c.currentExpr = exprName;
+    }
+  });
+  
   setSpeaker(charName);
-  const expressions = { '😊': '웃음', '😢': '슬픔', '😡': '분노', '😐': '기본' };
-  showToast(`${charName} → ${expressions[emoji] || emoji} 표정`, 'info');
+  showToast(`${charName} → ${exprName} 표정`, 'info');
 }
 
 // (플레이어 상태창 보류로 인한 삭제)

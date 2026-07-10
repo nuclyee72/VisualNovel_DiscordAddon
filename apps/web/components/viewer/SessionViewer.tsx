@@ -51,8 +51,14 @@ export default function SessionViewer({ sessionId }: { sessionId: string }) {
   const [currentSpeakerName, setCurrentSpeakerName] = useState<string | null>(null);
   const [currentText, setCurrentText] = useState('');
   const [isTypingDone, setIsTypingDone] = useState(false);
+  const [queueLength, setQueueLength] = useState(0);
   const dialogueQueueRef = useRef<DialoguePayload[]>([]);
   const isProcessingRef = useRef(false);
+
+  // ── 로그 창 상태 ─────────────────────────────────────────
+  const [historyLog, setHistoryLog] = useState<DialoguePayload[]>([]);
+  const [logOpen, setLogOpen] = useState(false);
+  const logContentRef = useRef<HTMLDivElement>(null);
 
   // ── 오토모드 ─────────────────────────────────────────────
   const [autoMode, setAutoMode] = useState(false);
@@ -81,11 +87,18 @@ export default function SessionViewer({ sessionId }: { sessionId: string }) {
   // ── 대사 큐 처리 ─────────────────────────────────────────
   const processNextDialogue = useCallback(() => {
     const next = dialogueQueueRef.current.shift();
+    setQueueLength(dialogueQueueRef.current.length);
     if (!next) {
       isProcessingRef.current = false;
       return;
     }
     isProcessingRef.current = true;
+
+    setHistoryLog((prev) => {
+      const updated = [...prev, next];
+      return updated.length > 20 ? updated.slice(updated.length - 20) : updated;
+    });
+
     setCurrentSpeakerName(next.speakerName);
     setCurrentText(next.text);
     setIsTypingDone(false);
@@ -107,6 +120,51 @@ export default function SessionViewer({ sessionId }: { sessionId: string }) {
     if (autoTimerRef.current) clearTimeout(autoTimerRef.current);
     processNextDialogue();
   }, [processNextDialogue]);
+
+  // ── 키보드 및 휠 이벤트 ────────────────────────────────────
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      // UI 요소 위에서의 스크롤 방지
+      const target = e.target as HTMLElement;
+      if (target.closest('.vn-controls') || target.closest('.vn-return-btn') || target.closest('.vn-log-overlay')) return;
+
+      if (e.deltaY < 0 && !logOpen) {
+        setLogOpen(true);
+        setTimeout(() => {
+          if (logContentRef.current) {
+            logContentRef.current.scrollTop = logContentRef.current.scrollHeight;
+          }
+        }, 10);
+      } else if (e.deltaY > 0) {
+        if (!logOpen) {
+          handleDialogueClick();
+        }
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['Space', 'Enter', 'ArrowDown', 'ArrowRight'].includes(e.code)) {
+        e.preventDefault();
+        if (logOpen) setLogOpen(false);
+        else handleDialogueClick();
+      }
+      if (e.code === 'KeyA') setAutoMode((p) => !p);
+      if (e.code === 'KeyF') {
+        if (document.fullscreenElement) document.exitFullscreen();
+        else document.getElementById('vn-viewer')?.requestFullscreen();
+      }
+      if (e.code === 'Escape') {
+        if (logOpen) setLogOpen(false);
+      }
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [logOpen, handleDialogueClick]);
 
   // ── Socket.IO 초기화 ──────────────────────────────────────
   useEffect(() => {
@@ -148,6 +206,7 @@ export default function SessionViewer({ sessionId }: { sessionId: string }) {
 
     socket.on(SOCKET_EVENTS.VN_DIALOGUE, (payload: DialoguePayload) => {
       dialogueQueueRef.current.push(payload);
+      setQueueLength(dialogueQueueRef.current.length);
       if (!isProcessingRef.current) {
         processNextDialogue();
       }
@@ -271,7 +330,11 @@ export default function SessionViewer({ sessionId }: { sessionId: string }) {
           width: 8, height: 8, borderRadius: '50%',
           background: isConnected ? 'var(--color-success)' : 'var(--color-danger)',
           boxShadow: `0 0 6px ${isConnected ? 'var(--color-success)' : 'var(--color-danger)'}`,
+          flexShrink: 0
         }} title={isConnected ? '연결됨' : '연결 끊김'} />
+
+        {/* 큐 배지 */}
+        <div className="vn-queue-badge" title="대기 중인 대사 수">큐: {queueLength}</div>
 
         {/* 마이크 (VAD + STT) */}
         <button
@@ -335,6 +398,37 @@ export default function SessionViewer({ sessionId }: { sessionId: string }) {
           </div>
         ))}
       </div>
+
+      {/* 대화 로그 오버레이 */}
+      {logOpen && (
+        <div className="vn-log-overlay" onClick={() => setLogOpen(false)}>
+          <div className="vn-log-header" onClick={e => e.stopPropagation()}>
+            📜 지난 대화 로그
+            <button className="vn-log-close-btn" onClick={() => setLogOpen(false)}>✕</button>
+          </div>
+          <div
+            className="vn-log-content"
+            ref={logContentRef}
+            onClick={e => e.stopPropagation()}
+            onWheel={(e) => {
+              // 로그창 최하단에서 휠을 아래로 굴리면 닫기
+              const content = e.currentTarget;
+              if (e.deltaY > 0 && content.scrollTop + content.clientHeight >= content.scrollHeight - 5) {
+                setLogOpen(false);
+              }
+            }}
+          >
+            {historyLog.map((log, i) => (
+              <div key={i} className="vn-log-entry">
+                <div className="vn-log-speaker">{log.speakerName}</div>
+                <div className="vn-log-text">
+                  {log.text.split('\n').map((line, idx) => <span key={idx}>{line}<br /></span>)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </main>
   );
 }

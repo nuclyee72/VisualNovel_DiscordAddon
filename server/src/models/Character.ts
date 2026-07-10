@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface ICharacterImage {
-  tag: string;    // e.g. '#기본', '#웃음'
+  tag: string;    // e.g. '#Neutral', '#Happy'
   url: string;    // Cloudflare R2 URL
   key: string;    // R2 object key
 }

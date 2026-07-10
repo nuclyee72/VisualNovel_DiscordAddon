@@ -80,7 +80,7 @@ export const MAX_SESSION_PARTICIPANTS = 10;
 export type ExpressionPayload = {
   sessionId: string;
   discordId: string;
-  tag: string;        // e.g. "#웃음", "#슬픔"
+  tag: string;        // e.g. "#Happy", "#Sad"
 };
 
 export type DicePayload = {
@@ -125,13 +125,15 @@ export type ParticipantPayload = {
 // ============================================================
 
 export const EMOJI_EXPRESSION_MAP: Record<string, string> = {
-  '😊': '#웃음', '😄': '#웃음', '😂': '#웃음', '🤣': '#웃음', '😁': '#웃음',
-  '😢': '#슬픔', '😭': '#슬픔', '😥': '#슬픔',
-  '😡': '#분노', '🤬': '#분노', '😠': '#분노',
-  '⚔️': '#전투', '🗡️': '#전투', '💪': '#전투',
-  '😱': '#놀람', '😮': '#놀람', '🤯': '#놀람',
-  '😐': '#기본', '😶': '#기본',
-  '🤔': '#생각', '🧐': '#생각',
+  '😊': '#Happy', '😄': '#Happy', '😂': '#Happy', '🤣': '#Happy', '😁': '#Happy',
+  '😢': '#Sad', '😭': '#Sad', '😥': '#Sad',
+  '😡': '#Angry', '🤬': '#Angry', '😠': '#Angry',
+  '😲': '#Surprised', '😱': '#Surprised', '😮': '#Surprised', '🤯': '#Surprised',
+  '😳': '#Embarrassed', '🫣': '#Embarrassed',
+  '😨': '#Scared', '😰': '#Scared',
+  '🤔': '#Thinking', '🧐': '#Thinking',
+  '😐': '#Neutral', '😶': '#Neutral',
+  '✨': '#Custom',
 };
 
 // ============================================================

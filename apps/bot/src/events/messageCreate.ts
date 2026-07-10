@@ -38,7 +38,7 @@ export async function handleMessageCreate(message: Message) {
     });
   }
 
-  // ── 수동 표정 명령어 감지: !웃음, !슬픔 등 ─────────────────
+  // ── 수동 표정 명령어 감지: !Happy, !Sad 등 ─────────────────
   const manualExpressionMatch = text.match(/^!(\S+)/);
   if (manualExpressionMatch) {
     const tag = `#${manualExpressionMatch[1]}`;
