@@ -359,7 +359,7 @@
       <span style="color: var(--accent);">💬</span> 비주얼 노벨 애드온
     </div>
     <div class="topbar-right">
-      <button class="btn-ghost" title="종합 설정">⚙</button>
+      <button class="btn-ghost" title="종합 설정" onclick="openSettingsModal()">⚙</button>
       <button class="btn-ghost" title="내 캐릭터 관리" onclick="openAvatarModal()">🧑</button>
     </div>
   </header>
@@ -454,6 +454,60 @@
         </div>
         <div class="face-grid-preview" id="face-grid-container">
           <!-- JS로 9조각 슬롯 렌더링 -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 종합 설정 스크린 -->
+<div id="settings-screen" style="display:none; position:fixed; inset:0; z-index:1000; background:var(--bg); color:var(--text1); flex-direction:column; overflow:hidden;">
+  <header class="topbar">
+    <div class="topbar-logo">
+      <span style="color: var(--accent);">⚙</span> 종합 설정 (데모)
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-secondary" onclick="closeSettingsModal()">닫기</button>
+    </div>
+  </header>
+  <div class="char-settings-main">
+    <!-- 좌측 카테고리 사이드바 -->
+    <div class="char-sidebar">
+      <h3 style="font-size:0.8rem;color:var(--text2);margin-bottom:8px;">설정 카테고리</h3>
+      <div class="char-item active" onclick="switchSettingsTab('viewer', event)">
+        <span style="font-size:1.1rem;">🎬</span>
+        <span style="font-weight:500;">뷰어 설정</span>
+      </div>
+      <div class="char-item" onclick="switchSettingsTab('session', event)">
+        <span style="font-size:1.1rem;">🎭</span>
+        <span style="font-weight:500;">세션 설정</span>
+      </div>
+      <div class="char-item" onclick="switchSettingsTab('emoji', event)">
+        <span style="font-size:1.1rem;">😊</span>
+        <span style="font-weight:500;">이모지 매핑</span>
+      </div>
+    </div>
+    <!-- 우측 내용 영역 -->
+    <div class="char-content">
+      <!-- 뷰어 설정 탭 -->
+      <div id="stab-viewer" class="char-tab-content active" style="justify-content:center; align-items:center; color:var(--text2); font-size:1rem;">
+        <div style="text-align:center; opacity:0.4;">
+          <div style="font-size:3rem; margin-bottom:16px;">🚧</div>
+          <div>뷰어 설정 항목을 준비 중입니다.</div>
+        </div>
+      </div>
+      <!-- 세션 설정 탭 -->
+      <div id="stab-session" class="char-tab-content" style="justify-content:center; align-items:center; color:var(--text2); font-size:1rem;">
+        <div style="text-align:center; opacity:0.4;">
+          <div style="font-size:3rem; margin-bottom:16px;">🚧</div>
+          <div>세션 설정 항목을 준비 중입니다.</div>
+        </div>
+      </div>
+      <!-- 이모지 매핑 탭 -->
+      <div id="stab-emoji" class="char-tab-content" style="justify-content:center; align-items:center; color:var(--text2); font-size:1rem;">
+        <div style="text-align:center; opacity:0.4;">
+          <div style="font-size:3rem; margin-bottom:16px;">🚧</div>
+          <div>이모지 매핑 설정을 준비 중입니다.</div>
         </div>
       </div>
     </div>
@@ -605,6 +659,28 @@ function openAvatarModal() {
 function closeAvatarModal() {
   document.getElementById('char-settings-screen').style.display = 'none';
   document.getElementById('dashboard-screen').style.display = 'flex';
+}
+
+function openSettingsModal() {
+  document.getElementById('dashboard-screen').style.display = 'none';
+  document.getElementById('vn-viewer').style.display = 'none';
+  document.getElementById('settings-screen').style.display = 'flex';
+}
+
+function closeSettingsModal() {
+  document.getElementById('settings-screen').style.display = 'none';
+  document.getElementById('dashboard-screen').style.display = 'flex';
+}
+
+function switchSettingsTab(tabName, event) {
+  // 탭 콘텐츠 전환
+  document.querySelectorAll('#settings-screen .char-tab-content').forEach(el => el.classList.remove('active'));
+  document.getElementById(`stab-${tabName}`).classList.add('active');
+  // 사이드바 아이템 활성화
+  if (event && event.currentTarget) {
+    document.querySelectorAll('#settings-screen .char-item').forEach(el => el.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+  }
 }
 
 function renderSidebar() {
