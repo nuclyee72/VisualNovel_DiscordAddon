@@ -4,6 +4,8 @@ import jwt from 'jsonwebtoken';
 import { SOCKET_EVENTS } from '../../packages/shared/src/index';
 import { Session } from './models/Session';
 import { SessionLog } from './models/SessionLog';
+import { Character } from './models/Character';
+import { User } from './models/User';
 
 interface AuthenticatedSocket extends Socket {
   discordId?: string;
@@ -73,6 +75,27 @@ export function initSocketIO(httpServer: HTTPServer): SocketIOServer {
 
       // 입장 알림 브로드캐스트 (봇 연결 제외)
       if (!socket.isBotConnection) {
+        // 유저의 아바타 정보
+        const user = await User.findOne({ discordId: socket.discordId });
+        const avatarUrl = user?.avatar || '';
+
+        // 캐릭터 이미지 데이터 로드
+        const character = await Character.findOne({ ownerId: socket.discordId }).lean();
+
+        // 참여자 입장 이벤트 브로드캐스트
+        io.to(roomName).emit(SOCKET_EVENTS.VN_PARTICIPANT_JOIN, {
+          sessionId,
+          discordId: socket.discordId,
+          userName: socket.userName,
+          avatarUrl,
+          role: 'player',
+          // 캐릭터 이미지 데이터 첨부
+          baseImageUrl: character?.baseImageUrl || null,
+          anchorX: character?.anchorX ?? 50,
+          anchorY: character?.anchorY ?? 10,
+          images: character?.images?.map(img => ({ tag: img.tag, url: img.url })) || [],
+        });
+
         socket.to(roomName).emit(SOCKET_EVENTS.VN_SYSTEM_MESSAGE, {
           sessionId,
           text: `${socket.userName}님이 입장했습니다.`,

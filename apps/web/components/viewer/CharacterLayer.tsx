@@ -1,16 +1,23 @@
 'use client';
 
+export interface CharacterImage {
+  tag: string;  // e.g. '#Neutral'
+  url: string;
+}
+
 export interface CharacterState {
   discordId: string;
   name: string;
   avatarUrl: string;
-  standingImageUrl: string | null; // 구버전 호환용 (단일 이미지)
-  baseImageUrl?: string | null;    // (NEW) 기본 몸통 이미지
-  faceImageUrl?: string | null;    // (NEW) 표정 파츠 이미지
-  anchorX?: number;                // (NEW) 얼굴 X축 중심 위치 (0~100%)
-  anchorY?: number;                // (NEW) 얼굴 Y축 중심 위치 (0~100%)
+  standingImageUrl: string | null;
+  baseImageUrl?: string | null;
+  faceImageUrl?: string | null;
+  anchorX?: number;
+  anchorY?: number;
+  currentTag?: string;    // (NEW) 현재 표정 태그 e.g. '#Happy'
+  images?: CharacterImage[];  // (NEW) 등록된 표정 이미지 목록
   isSpeaking: boolean;
-  position: number; // 0~4
+  position: number;
 }
 
 interface CharacterLayerProps {
@@ -36,19 +43,26 @@ export default function CharacterLayer({ characters }: CharacterLayerProps) {
                 className="vn-character-base"
                 draggable={false}
               />
-              {char.faceImageUrl && (
-                <img
-                  src={char.faceImageUrl}
-                  alt={`${char.name} 표정`}
-                  className="vn-character-face"
-                  draggable={false}
-                  style={{
-                    left: `${char.anchorX ?? 50}%`,
-                    top: `${char.anchorY ?? 10}%`,
-                    transform: 'translate(-50%, -50%)'
-                  }}
-                />
-              )}
+              {(() => {
+                // currentTag로 images에서 URL 찾기, 없으면 faceImageUrl 폴백
+                const tag = char.currentTag || '#Neutral';
+                const resolved = char.images?.find(img => img.tag === tag)?.url
+                  || char.images?.find(img => img.tag === '#Neutral')?.url
+                  || char.faceImageUrl;
+                return resolved ? (
+                  <img
+                    src={resolved}
+                    alt={`${char.name} 표정`}
+                    className="vn-character-face"
+                    draggable={false}
+                    style={{
+                      left: `${char.anchorX ?? 50}%`,
+                      top: `${char.anchorY ?? 10}%`,
+                      transform: 'translate(-50%, -50%)'
+                    }}
+                  />
+                ) : null;
+              })()}
             </div>
           ) : char.standingImageUrl ? (
             /* 기존 단일 스탠딩 이미지 */

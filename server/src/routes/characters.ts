@@ -51,16 +51,22 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
   });
   if (!character) return res.status(404).json({ error: '캐릭터를 찾을 수 없습니다.' });
 
-  const { name, description, job, stats } = req.body as {
+  const { name, description, job, stats, baseImageUrl, anchorX, anchorY } = req.body as {
     name?: string;
     description?: string;
     job?: string;
     stats?: { hp?: { current?: number; max?: number }; mp?: { current?: number; max?: number } };
+    baseImageUrl?: string;
+    anchorX?: number;
+    anchorY?: number;
   };
 
   if (name) character.name = name;
   if (description !== undefined) character.description = description;
   if (job !== undefined) character.job = job;
+  if (baseImageUrl !== undefined) character.baseImageUrl = baseImageUrl;
+  if (anchorX !== undefined) character.anchorX = anchorX;
+  if (anchorY !== undefined) character.anchorY = anchorY;
   if (stats?.hp?.max !== undefined) character.stats.hp.max = stats.hp.max;
   if (stats?.hp?.current !== undefined) character.stats.hp.current = stats.hp.current;
   if (stats?.mp?.max !== undefined) character.stats.mp.max = stats.mp.max;

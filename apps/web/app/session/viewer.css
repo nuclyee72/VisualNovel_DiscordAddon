@@ -377,7 +377,7 @@
   cursor: pointer;
 }
 .vn-ctrl-btn:hover {
-  background: rgba(124, 106, 247, 0.3);
+  background: rgba(148, 155, 164, 0.3);
   border-color: var(--color-accent-primary);
   color: white;
 }

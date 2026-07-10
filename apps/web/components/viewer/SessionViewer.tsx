@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
+import Link from 'next/link';
 import '../viewer.css';
 
 import BackgroundLayer from '@/components/viewer/BackgroundLayer';
@@ -216,7 +217,6 @@ export default function SessionViewer({ sessionId }: { sessionId: string }) {
       setCharacters((prev) =>
         prev.map((c) => {
           if (c.discordId !== payload.discordId) return c;
-          // 해당 태그의 이미지 URL 찾기는 캐릭터 데이터에서 처리
           return { ...c, currentTag: payload.tag };
         })
       );
@@ -228,10 +228,13 @@ export default function SessionViewer({ sessionId }: { sessionId: string }) {
       addToast(payload.text, payload.level);
     });
 
-    socket.on(SOCKET_EVENTS.VN_PARTICIPANT_JOIN, (payload: ParticipantPayload) => {
+    socket.on(SOCKET_EVENTS.VN_PARTICIPANT_JOIN, (payload: ParticipantPayload & {
+      baseImageUrl?: string | null;
+      anchorX?: number;
+      anchorY?: number;
+      images?: Array<{ tag: string; url: string }>;
+    }) => {
       addToast(`${payload.userName}님이 입장했습니다.`);
-      // TRPG 관련 상태(players) 관리는 보류
-      // 캐릭터 레이어에도 추가
       setCharacters((prev) => {
         if (prev.some((c) => c.discordId === payload.discordId)) return prev;
         const pos = prev.length % 5;
@@ -240,8 +243,12 @@ export default function SessionViewer({ sessionId }: { sessionId: string }) {
           name: payload.userName,
           avatarUrl: payload.avatarUrl,
           standingImageUrl: null,
-          baseImageUrl: null,
+          baseImageUrl: payload.baseImageUrl || null,
           faceImageUrl: null,
+          anchorX: payload.anchorX ?? 50,
+          anchorY: payload.anchorY ?? 10,
+          currentTag: '#Neutral',
+          images: payload.images || [],
           isSpeaking: false,
           position: pos,
         }];

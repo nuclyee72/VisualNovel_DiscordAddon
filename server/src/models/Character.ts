@@ -12,6 +12,9 @@ export interface ICharacter extends Document {
   description?: string;
   job?: string;
   images: ICharacterImage[];
+  baseImageUrl?: string;    // (NEW) 몸통 이미지 URL
+  anchorX?: number;         // (NEW) 얼굴 앵커 X% (0~100)
+  anchorY?: number;         // (NEW) 얼굴 앵커 Y% (0~100)
   stats: {
     hp: { current: number; max: number };
     mp: { current: number; max: number };
@@ -34,6 +37,9 @@ const CharacterSchema = new Schema<ICharacter>(
     description: { type: String },
     job: { type: String },
     images: [CharacterImageSchema],
+    baseImageUrl: { type: String },
+    anchorX: { type: Number, default: 50 },
+    anchorY: { type: Number, default: 10 },
     stats: {
       hp: {
         current: { type: Number, default: 100 },
