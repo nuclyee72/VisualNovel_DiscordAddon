@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TRPG Visual Novel — 데모</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@400;600&family=Cinzel:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── 리셋 & 변수 ─────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    /* ── 디자인 토큰 ────────────────────────── */
+    :root {
+      --bg: #313338; --panel: #2b2d31; --border: rgba(255, 255, 255, 0.08);
+      --accent: #949BA4; --gold: #c9a84c; --text1: #f2f3f5; --text2: #b5bac1;
+      --font-sans: 'Noto Sans KR', sans-serif;
+      --font-serif: 'Noto Serif KR', serif;
+      --font-title: 'Cinzel', serif;
+      --crossfade: 1.5s ease-in-out;
+    }
+    html, body { width: 100%; height: 100%; overflow: hidden; font-family: var(--font-sans); background: #000; color: var(--text1); -webkit-font-smoothing: antialiased; }
+    button { font-family: var(--font-sans); cursor: pointer; border: none; background: none; }
+
+    /* ── 뷰어 루트 ──────────────────────────── */
+    #vn-viewer { position: fixed; inset: 0; width: 100vw; height: 100vh; overflow: hidden; }
+
+    /* ── 배경 레이어 (크로스페이드) ─────────── */
+    #bg-wrap { position: absolute; inset: 0; z-index: 0; }
+    .bg-layer {
+      position: absolute; inset: 0;
+      background-size: cover; background-position: center;
+      transition: opacity var(--crossfade);
+    }
+    .bg-layer.active { opacity: 1; }
+    .bg-layer.inactive { opacity: 0; }
+    #bg-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0) 35%, rgba(0,0,0,0.35) 70%, rgba(0,0,0,0.72) 100%);
+      z-index: 1;
+    }
+
+    /* ── 캐릭터 레이어 ──────────────────────── */
+    #char-layer {
+      position: absolute; inset: 0;
+      z-index: 100;
+      display: flex; align-items: flex-end; justify-content: center;
+      pointer-events: none;
+    }
+    .char-slot {
+      position: absolute; bottom: 0;
+      display: flex; flex-direction: column; align-items: center;
+      transition: all 0.45s cubic-bezier(0.34, 1.4, 0.64, 1);
+      transform-origin: bottom center;
+    }
+    .char-slot.idle { opacity: 0.5; filter: brightness(0.7); z-index: 100; }
+    .char-slot.speaking { opacity: 1; filter: brightness(1.15) saturate(1.1); z-index: 200; }
+
+    /* 위치 */
+    .char-slot[data-pos="0"] { left: 6%;  transform: scale(0.8); }
+    .char-slot[data-pos="1"] { left: 22%; transform: scale(0.86); }
+    .char-slot[data-pos="2"] { left: 50%; transform: translateX(-50%) scale(0.9); }
+    .char-slot[data-pos="3"] { right: 22%; transform: scale(0.86); }
+    .char-slot[data-pos="4"] { right: 6%;  transform: scale(0.8); }
+    
+    .char-slot.speaking[data-pos="0"] { transform: scale(0.9) translateY(-20px); }
+    .char-slot.speaking[data-pos="1"] { transform: scale(0.94) translateY(-20px); }
+    .char-slot.speaking[data-pos="2"] { transform: translateX(-50%) scale(1.05) translateY(-20px); }
+    .char-slot.speaking[data-pos="3"] { transform: scale(0.94) translateY(-20px); }
+    .char-slot.speaking[data-pos="4"] { transform: scale(0.9) translateY(-20px); }
+
+    .char-avatar {
+      width: 100px; height: 100px;
+      border-radius: 50%; object-fit: cover;
+      border: 3px solid rgba(148,155,164,0.4);
+      box-shadow: 0 0 20px rgba(148,155,164,0.3);
+    }
+    .char-slot.speaking .char-avatar {
+      border-color: var(--accent);
+      box-shadow: 0 0 30px rgba(148,155,164,0.6);
+    }
+    .char-name-tag {
+      margin-top: 6px; padding: 2px 10px;
+      background: rgba(0,0,0,0.7); border-radius: 20px;
+      font-size: 0.72rem; color: rgba(255,255,255,0.85);
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .char-slot.speaking .char-name-tag { opacity: 1; }
+
+    /* ── 대사창 ─────────────────────────────── */
+    #dialogue-box {
+      position: absolute; top: 0; bottom: 0; left: 15%; width: 70%; height: 100vh;
+      z-index: 300; display: flex; flex-direction: column; cursor: pointer;
+    }
+    #dialogue-inner {
+      height: 100%; width: 100%;
+      padding: 20vh 15%;
+      display: flex; flex-direction: column; position: relative;
+    }
+    #dialogue-bg {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+      z-index: -1;
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%), linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+      -webkit-mask-composite: source-in;
+      mask-image: linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%), linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+      mask-composite: intersect;
+    }
+    #speaker-name {
+      font-family: var(--font-title); font-size: 1.25rem; font-weight: 600;
+      color: var(--gold); letter-spacing: 0.08em;
+      text-shadow: 0 0 10px rgba(201,168,76,0.3);
+      min-height: 1.4em; text-align: left;
+      margin-bottom: 8px;
+    }
+    #speaker-name::after { content: ":"; }
+    #dialogue-text {
+      font-family: var(--font-serif); font-size: 1.15rem; line-height: 1.85;
+      color: #ffffff; flex: 1; overflow-y: auto; text-align: left;
+      padding-left: 2rem;
+    }
+    #dialogue-text::-webkit-scrollbar { width: 0px; background: transparent; }
+    #typing-cursor {
+      display: inline-block; width: 2px; height: 1em;
+      background: var(--accent); margin-left: 2px;
+      vertical-align: text-bottom;
+      animation: blink 0.75s step-end infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1}50%{opacity:0} }
+    #next-arrow {
+      display: inline-block; margin-left: 8px;
+      color: var(--accent); font-size: 1.1rem;
+      vertical-align: middle;
+      animation: pulse-arrow 1.2s ease-in-out infinite;
+      display: none;
+    }
+    @keyframes pulse-arrow { 0%,100%{opacity:0.5;transform:translateX(0)} 50%{opacity:1;transform:translateX(4px)} }
+
+    /* ── 컨트롤 바 ──────────────────────────── */
+    #controls {
+      position: absolute; top: 14px; left: 14px; z-index: 350;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .ctrl-btn {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: rgba(0,0,0,0.55); backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.7);
+      font-size: 1rem; transition: all 0.15s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ctrl-btn:hover { background: rgba(148,155,164,0.3); border-color: var(--accent); color: white; }
+    .ctrl-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+    #speed-badge {
+      padding: 4px 10px; border-radius: 6px;
+      background: rgba(0,0,0,0.55); backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.12); color: var(--text2);
+      font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: all 0.15s;
+    }
+    #speed-badge:hover { border-color: var(--accent); color: white; }
+    #dot { width: 8px; height: 8px; border-radius: 50%; background: #55c48a; box-shadow: 0 0 6px #55c48a; flex-shrink: 0; }
+    #queue-badge {
+      background: rgba(43,45,49,0.75); border: 1px solid var(--border);
+      color: var(--text2); font-size: 0.8rem; font-weight: 600;
+      padding: 4px 10px; border-radius: 12px; margin-left: 4px;
+    }
+
+    /* ── 데모 패널 ──────────────────────────── */
+    #demo-panel {
+      position: absolute; bottom: 195px; right: 14px; z-index: 350;
+      background: rgba(43,45,49,0.88); backdrop-filter: blur(16px);
+      border: 1px solid var(--border); border-radius: 14px;
+      padding: 14px 16px; width: 240px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .demo-panel-title {
+      font-size: 0.72rem; color: var(--text2); letter-spacing: 0.08em;
+      border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 2px;
+    }
+    .demo-section-label { font-size: 0.68rem; color: rgba(255,255,255,0.35); letter-spacing: 0.06em; margin-top: 4px; }
+    .demo-btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .demo-btn {
+      padding: 5px 11px; border-radius: 7px; font-size: 0.75rem;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text2); transition: all 0.15s; cursor: pointer;
+    }
+    .demo-btn:hover { background: rgba(255,255,255,0.08); border-color: var(--text2); }
+    .demo-btn.bg-active { background: rgba(255,255,255,0.12); border-color: var(--accent); color: white; }
+
+    /* ── 랜딩 복귀 버튼 ──────────────────────── */
+    .vn-return-btn {
+      position: absolute; top: 32px; right: 32px; z-index: 500;
+      display: flex; align-items: center; padding: 8px 16px; border-radius: 8px;
+      color: var(--text2); font-size: 0.9rem; font-weight: 500;
+      cursor: pointer; background: rgba(43,45,49,0.75); border: 1px solid var(--border);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      transition: all 0.2s;
+    }
+    .vn-return-btn:hover { color: var(--text1); background: rgba(255,255,255,0.15); }
+
+    /* ── 토스트 ─────────────────────────────── */
+    #toast-wrap {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      z-index: 450; display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+    }
+    .toast {
+      padding: 8px 20px; border-radius: 50px; font-size: 0.82rem; font-weight: 500;
+      backdrop-filter: blur(20px); animation: toastIn 0.3s ease;
+      white-space: nowrap;
+    }
+    .toast.info { background: rgba(85,136,224,0.88); color: white; }
+    .toast.warning { background: rgba(224,168,85,0.88); color: #1a1000; }
+    .toast.error { background: rgba(224,85,85,0.88); color: white; }
+    .toast.success { background: rgba(85,196,138,0.88); color: #001a0a; }
+    @keyframes toastIn { from{opacity:0;transform:translateY(-16px) scale(0.95)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+    /* ── STT 자막 ─────────────────────────── */
+    #stt-caption {
+      position: absolute; bottom: 192px; left: 50%; transform: translateX(-50%);
+      z-index: 190; background: rgba(0,0,0,0.62); backdrop-filter: blur(8px);
+      padding: 7px 18px; border-radius: 20px; font-size: 0.88rem;
+      color: rgba(255,255,255,0.82); border: 1px solid rgba(255,255,255,0.1);
+      max-width: 60%; text-align: center; pointer-events: none; display: none; font-style: italic;
+    }
+
+    /* ── 대화 로그 오버레이 ────────────────────── */
+    #log-overlay {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.85);
+      z-index: 600; display: none; flex-direction: column;
+      backdrop-filter: blur(8px);
+    }
+    #log-header {
+      padding: 16px 24px; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 1.1rem; font-weight: 600; color: var(--text1);
+      background: rgba(0,0,0,0.5);
+    }
+    .log-close-btn { color: var(--text2); font-size: 1.2rem; }
+    .log-close-btn:hover { color: var(--text1); }
+    #log-content {
+      flex: 1; overflow-y: auto; padding: 24px 32px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .log-entry { display: flex; gap: 16px; }
+    .log-speaker { font-weight: 600; color: var(--gold); min-width: 80px; text-align: right; }
+    .log-text { color: var(--text1); flex: 1; line-height: 1.6; }
+
+    /* ── 대시보드 화면 (랜딩 창) ──────────────── */
+    #dashboard-screen {
+      position: fixed; inset: 0; z-index: 999;
+      background: var(--bg); color: var(--text1);
+      display: flex; flex-direction: column; overflow-y: auto;
+    }
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px; background: var(--panel); border-bottom: 1px solid var(--border);
+      height: 72px; flex-shrink: 0;
+    }
+    .topbar-logo { font-family: var(--font-title); font-size: 1.4rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .topbar-right { display: flex; align-items: center; gap: 16px; }
+    .btn-ghost { font-size: 1.4rem; color: var(--text2); cursor: pointer; padding: 8px; border-radius: 50%; transition: all 0.2s; }
+    .btn-ghost:hover { background: rgba(255,255,255,0.08); color: var(--text1); }
+    
+    .dashboard-main { padding: 40px; max-width: 1200px; margin: 0 auto; width: 100%; }
+    .page-title { font-family: var(--font-title); font-size: 1.8rem; margin-bottom: 4px; }
+    .page-sub { color: var(--text2); margin-bottom: 32px; }
+    
+    .session-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
+    .session-card {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+      padding: 24px; transition: all 0.2s;
+    }
+    .session-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .session-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+    .session-card-title { font-size: 1.25rem; font-weight: 600; }
+    .session-card-badge {
+      padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+      background: rgba(148,155,164,0.15); color: var(--text2); border: 1px solid rgba(148,155,164,0.3);
+    }
+    .session-card-info { color: var(--text2); font-size: 0.9rem; margin-bottom: 24px; display: flex; flex-direction: column; gap: 8px; }
+    .session-btn {
+      width: 100%; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 0.95rem;
+      background: rgba(255,255,255,0.06); color: var(--text1); border: 1px solid var(--border);
+      transition: all 0.2s; cursor: pointer;
+    }
+    .session-btn:hover { background: rgba(148,155,164,0.15); border-color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<!-- 대시보드 화면 -->
+<div id="dashboard-screen">
+  <header class="topbar">
+    <div class="topbar-logo">
+      <span style="color: var(--accent);">💬</span> 비주얼 노벨 애드온
+    </div>
+    <div class="topbar-right">
+      <button class="btn-ghost" title="종합 설정">⚙</button>
+      <button class="btn-ghost" title="내 캐릭터 관리">🧑</button>
+    </div>
+  </header>
+  <main class="dashboard-main">
+    <h1 class="page-title">비주얼 노벨 뷰어 창 목록</h1>
+    <p class="page-sub">현재 참여 가능한 비주얼 노벨 대화창 예시 목록입니다.</p>
+    
+    <div class="session-grid">
+      <div class="session-card">
+        <div class="session-card-header">
+          <div class="session-card-title">예시 방 1</div>
+        </div>
+        <div class="session-card-info">
+          <div>예시 방 1에 대한 간단한 설명 텍스트가 표시되는 공간입니다. 어떤 대화가 진행되는지 요약할 수 있습니다.</div>
+        </div>
+        <button class="session-btn" onclick="startDemo()">참가하기 ▶</button>
+      </div>
+      
+      <div class="session-card">
+        <div class="session-card-header">
+          <div class="session-card-title">예시 방 2</div>
+        </div>
+        <div class="session-card-info">
+          <div>예시 방 2에 대한 간단한 설명 텍스트가 표시되는 공간입니다. 어떤 대화가 진행되는지 요약할 수 있습니다.</div>
+        </div>
+        <button class="session-btn" onclick="startDemo()">참가하기 ▶</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- 비주얼 노벨 뷰어 -->
+<div id="vn-viewer" style="display:none">
+
+  <!-- 배경 -->
+  <div id="bg-wrap">
+    <div class="bg-layer active" id="bg-a" style="background-image:url('bg_dungeon.png')"></div>
+    <div class="bg-layer inactive" id="bg-b"></div>
+    <div id="bg-overlay"></div>
+  </div>
+
+  <!-- 캐릭터 레이어 -->
+  <div id="char-layer"></div>
+
+  <!-- 나가기 버튼 -->
+  <button class="vn-return-btn" onclick="returnToDashboard()" title="랜딩 창으로 돌아가기">
+    🚪 나가기
+  </button>
+
+  <!-- 대사창 -->
+  <div id="dialogue-box">
+    <div id="dialogue-inner">
+      <div id="dialogue-bg"></div>
+      <div id="speaker-name"></div>
+      <div id="dialogue-text"><span id="text-content"></span><span id="typing-cursor"></span><span id="next-arrow">▶</span></div>
+    </div>
+  </div>
+
+  <!-- STT 자막 -->
+  <div id="stt-caption">🎙 말하는 중...</div>
+
+  <!-- 컨트롤 바 -->
+  <div id="controls">
+    <div id="dot" title="연결됨 (Mock)"></div>
+    <div id="queue-badge" title="대기 중인 대사 수">큐: 0</div>
+    <button class="ctrl-btn" id="btn-mic" onclick="toggleMic()" title="마이크 (음성 → 대사)">🎙</button>
+    <button class="ctrl-btn" id="btn-auto" onclick="toggleAuto()" title="오토 모드">▶</button>
+    <span id="speed-badge" onclick="cycleSpeed()">1.0x</span>
+    <button class="ctrl-btn" onclick="toggleFullscreen()" title="전체화면">⛶</button>
+  </div>
+
+  <!-- 데모 컨트롤 패널 -->
+  <div id="demo-panel">
+    <div class="demo-panel-title">🎮 데모 이벤트 조작</div>
+
+    <div class="demo-section-label">BACKGROUND</div>
+    <div class="demo-btn-row">
+      <button class="demo-btn bg-active" id="bg-btn-dungeon" onclick="changeBG('dungeon')">배경 A</button>
+      <button class="demo-btn" id="bg-btn-town" onclick="changeBG('town')">배경 B</button>
+      <button class="demo-btn" id="bg-btn-forest" onclick="changeBG('forest')">배경 C</button>
+    </div>
+
+    <div class="demo-section-label">DIALOGUE</div>
+    <div class="demo-btn-row">
+      <button class="demo-btn" onclick="pushDialogue('시스템', '이곳은 예시 대사가 출력되는 공간입니다. 어떤 텍스트든 자유롭게 표현할 수 있습니다.')">시스템</button>
+      <button class="demo-btn" onclick="pushDialogue('캐릭터 A', '안녕하세요! 텍스트 출력 속도와 애니메이션을 테스트해보세요.')">캐릭터 A</button>
+      <button class="demo-btn" onclick="pushDialogue('캐릭터 B', '자동 진행 모드를 켜면 클릭 없이도 대화가 진행됩니다! 😊')">캐릭터 B</button>
+    </div>
+
+    <div class="demo-section-label">EXPRESSION</div>
+    <div class="demo-btn-row">
+      <button class="demo-btn" onclick="changeExpression('캐릭터 A', '😊')">😊 캐릭터 A 웃음</button>
+      <button class="demo-btn" onclick="changeExpression('캐릭터 A', '😢')">😢 캐릭터 A 슬픔</button>
+      <button class="demo-btn" onclick="changeExpression('캐릭터 B', '😡')">😡 캐릭터 B 분노</button>
+    </div>
+
+    <!-- 추가 컴포넌트 생략 -->
+  </div>
+
+  <!-- 토스트 -->
+  <div id="toast-wrap"></div>
+
+  <!-- 대화 로그 오버레이 -->
+  <div id="log-overlay">
+    <div id="log-header">
+      📜 지난 대화 로그
+      <button class="log-close-btn" onclick="closeLog()">✕</button>
+    </div>
+    <div id="log-content"></div>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+// 상태
+// ══════════════════════════════════════════════════
+const state = {
+  bgActive: 'A',     // 현재 활성 배경 레이어
+  bgCurrent: 'dungeon',
+  autoMode: false,
+  autoSpeed: 1.0,
+  isTyping: false,
+  typingDone: false,
+  currentText: '',
+  dialogueQueue: [],
+  isProcessing: false,
+  sttEnabled: false,
+  sidebarOpen: false,
+  recognition: null,
+  isSpeaking: false,
+  historyLog: [],
+  logOpen: false,
+
+  players: [], // TRPG 기능 보류
+
+  chars: [
+    { id: 'ariel', name: '캐릭터 A',  pos: 1, avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Ariel&backgroundColor=b6e3f4', speaking: false },
+    { id: 'leon',  name: '캐릭터 B',   pos: 3, avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Leon&backgroundColor=ffdfbf', speaking: false },
+  ],
+};
+
+// ══════════════════════════════════════════════════
+// 시작
+// ══════════════════════════════════════════════════
+function startDemo() {
+  document.getElementById('dashboard-screen').style.display = 'none';
+  document.getElementById('vn-viewer').style.display = 'block';
+  renderChars();
+  showToast('🎭 세션에 입장했습니다. 우측 패널로 이벤트를 조작해보세요.', 'info');
+  // 첫 대사만 초기화/출력되도록 기존 대화가 있으면 생략
+  if (state.dialogueQueue.length === 0 && !state.currentText) {
+    setTimeout(() => {
+      pushDialogue('시스템', '비주얼 노벨 뷰어에 오신 것을 환영합니다.\n이곳은 참가자들이 대화하는 공간입니다.');
+      setTimeout(() => {
+        pushDialogue('캐릭터 A', '안녕하세요! 텍스트 출력 속도와 애니메이션을 테스트해 보세요.');
+      }, 4500);
+    }, 800);
+  }
+}
+
+function returnToDashboard() {
+  document.getElementById('vn-viewer').style.display = 'none';
+  document.getElementById('dashboard-screen').style.display = 'flex';
+}
+
+// ══════════════════════════════════════════════════
+// 배경 크로스페이드
+// ══════════════════════════════════════════════════
+const BG_URLS = {
+  dungeon: 'bg_dungeon.png',
+  town:    'bg_town.png',
+  forest:  'bg_forest.png',
+};
+
+function changeBG(name) {
+  if (state.bgCurrent === name) return;
+  state.bgCurrent = name;
+
+  const url = BG_URLS[name];
+  const nextLayer = state.bgActive === 'A' ? 'bg-b' : 'bg-a';
+  const activeEl = document.getElementById(state.bgActive === 'A' ? 'bg-a' : 'bg-b');
+  const nextEl   = document.getElementById(nextLayer);
+
+  nextEl.style.backgroundImage = `url('${url}')`;
+  nextEl.className = 'bg-layer active';
+  activeEl.className = 'bg-layer inactive';
+  state.bgActive = state.bgActive === 'A' ? 'B' : 'A';
+
+  // 버튼 활성화
+  document.querySelectorAll('[id^="bg-btn-"]').forEach(b => b.classList.remove('bg-active'));
+  document.getElementById('bg-btn-' + name)?.classList.add('bg-active');
+
+  showToast(`🖼️ 배경 전환: ${name === 'dungeon' ? '던전' : name === 'town' ? '마을' : '숲'}`, 'info');
+}
+
+// ══════════════════════════════════════════════════
+// 캐릭터 렌더링
+// ══════════════════════════════════════════════════
+function renderChars() {
+  const wrap = document.getElementById('char-layer');
+  wrap.innerHTML = '';
+  state.chars.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'char-slot ' + (c.speaking ? 'speaking' : 'idle');
+    div.setAttribute('data-pos', c.pos);
+    div.setAttribute('data-id', c.id);
+    div.innerHTML = `
+      <img class="char-avatar" src="${c.avatar}" alt="${c.name}" />
+      <span class="char-name-tag">${c.name}</span>
+    `;
+    wrap.appendChild(div);
+  });
+}
+
+function setSpeaker(name) {
+  state.chars.forEach(c => { c.speaking = (c.name === name); });
+  renderChars();
+}
+
+function changeExpression(charName, emoji) {
+  setSpeaker(charName);
+  const expressions = { '😊': '웃음', '😢': '슬픔', '😡': '분노', '😐': '기본' };
+  showToast(`${charName} → ${expressions[emoji] || emoji} 표정`, 'info');
+}
+
+// (플레이어 상태창 보류로 인한 삭제)
+
+// ══════════════════════════════════════════════════
+// 대사 큐 & 타이핑
+// ══════════════════════════════════════════════════
+let typingInterval = null;
+let autoTimer = null;
+
+function updateQueueBadge() {
+  const badge = document.getElementById('queue-badge');
+  if (badge) badge.textContent = `큐: ${state.dialogueQueue.length}`;
+}
+
+function pushDialogue(speaker, text) {
+  state.dialogueQueue.push({ speaker, text });
+  updateQueueBadge();
+  if (!state.isProcessing) processNext();
+}
+
+function processNext() {
+  const next = state.dialogueQueue.shift();
+  updateQueueBadge();
+  if (!next) { state.isProcessing = false; return; }
+  
+  // 로그에 추가 (최대 20개)
+  state.historyLog.push(next);
+  if (state.historyLog.length > 20) state.historyLog.shift();
+
+  state.isProcessing = true;
+  state.currentText = next.text;
+  state.typingDone = false;
+
+  document.getElementById('speaker-name').textContent = next.speaker;
+  document.getElementById('text-content').textContent = '';
+  document.getElementById('typing-cursor').style.display = 'inline-block';
+  document.getElementById('next-arrow').style.display = 'none';
+
+  setSpeaker(next.speaker);
+  startTyping(next.text);
+}
+
+function startTyping(text) {
+  if (typingInterval) clearInterval(typingInterval);
+  let idx = 0;
+  const speed = 38 / state.autoSpeed;
+  typingInterval = setInterval(() => {
+    idx++;
+    document.getElementById('text-content').textContent = text.slice(0, idx);
+    if (idx >= text.length) {
+      clearInterval(typingInterval);
+      state.typingDone = true;
+      document.getElementById('typing-cursor').style.display = 'none';
+      if (!state.autoMode) {
+        document.getElementById('next-arrow').style.display = 'inline-block';
+      } else {
+        const delay = Math.max(2000, text.length * 140) / state.autoSpeed;
+        autoTimer = setTimeout(processNext, delay);
+      }
+    }
+  }, speed);
+}
+
+let lastClickTime = 0;
+
+function handleDialogueClick() {
+  const now = Date.now();
+  if (now - lastClickTime < 150) return; // 연속 스킵 방지 (150ms 쿨다운)
+  lastClickTime = now;
+
+  if (!state.typingDone) {
+    // 즉시 완성
+    if (typingInterval) clearInterval(typingInterval);
+    document.getElementById('text-content').textContent = state.currentText;
+    document.getElementById('typing-cursor').style.display = 'none';
+    state.typingDone = true;
+    if (!state.autoMode) {
+      document.getElementById('next-arrow').style.display = 'inline-block';
+    } else {
+      const delay = Math.max(2000, state.currentText.length * 140) / state.autoSpeed;
+      autoTimer = setTimeout(processNext, delay);
+    }
+  } else {
+    // 완료 상태면 다음 대사로
+    if (autoTimer) clearTimeout(autoTimer);
+    processNext();
+  }
+}
+
+// ══════════════════════════════════════════════════
+// 오토모드 & 배속
+// ══════════════════════════════════════════════════
+function toggleAuto() {
+  state.autoMode = !state.autoMode;
+  document.getElementById('btn-auto').classList.toggle('active', state.autoMode);
+  showToast(state.autoMode ? '▶ 오토 모드 ON' : '⏸ 오토 모드 OFF', 'info');
+  if (state.autoMode && state.typingDone) {
+    const delay = Math.max(2000, state.currentText.length * 140) / state.autoSpeed;
+    autoTimer = setTimeout(processNext, delay);
+  }
+}
+
+function cycleSpeed() {
+  const speeds = [1.0, 1.5, 2.0];
+  const idx = speeds.indexOf(state.autoSpeed);
+  state.autoSpeed = speeds[(idx + 1) % speeds.length];
+  document.getElementById('speed-badge').textContent = state.autoSpeed.toFixed(1) + 'x';
+}
+
+// (주사위 보류로 인한 삭제)
+
+// ══════════════════════════════════════════════════
+// 마이크 & VAD & STT
+// ══════════════════════════════════════════════════
+let recognition = null;
+let audioCtx = null, analyser = null, stream = null, vadFrame = null, vadTimer = null;
+let micSpeaking = false;
+
+async function toggleMic() {
+  state.sttEnabled = !state.sttEnabled;
+  const btn = document.getElementById('btn-mic');
+  if (state.sttEnabled) {
+    btn.classList.add('active');
+    btn.style.animation = 'none';
+    btn.style.background = 'rgba(224,85,85,0.35)';
+    btn.style.borderColor = 'var(--hp)';
+    btn.style.color = 'var(--hp)';
+    await startMic();
+    showToast('🎙 마이크 ON — 말하면 대사창에 표시됩니다', 'info');
+  } else {
+    btn.classList.remove('active');
+    btn.style.background = '';
+    btn.style.borderColor = '';
+    btn.style.color = '';
+    btn.style.animation = '';
+    stopMic();
+    showToast('🔇 마이크 OFF', 'info');
+    document.getElementById('stt-caption').style.display = 'none';
+  }
+}
+
+async function startMic() {
+  // VAD
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioCtx = new AudioContext();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 512;
+    const src = audioCtx.createMediaStreamSource(stream);
+    src.connect(analyser);
+    const data = new Uint8Array(analyser.frequencyBinCount);
+
+    function detect() {
+      analyser.getByteFrequencyData(data);
+      const rms = Math.sqrt(data.reduce((s,v)=>s+v*v,0)/data.length);
+      if (rms > 15) {
+        if (!micSpeaking) {
+          micSpeaking = true;
+          setSpeaker('나'); // 자신이 발언 중
+          document.getElementById('stt-caption').style.display = 'block';
+        }
+        if (vadTimer) clearTimeout(vadTimer);
+        vadTimer = setTimeout(() => {
+          micSpeaking = false;
+          document.getElementById('stt-caption').style.display = 'none';
+        }, 800);
+      }
+      vadFrame = requestAnimationFrame(detect);
+    }
+    detect();
+  } catch(e) {
+    showToast('⚠️ 마이크 권한이 필요합니다', 'error');
+    state.sttEnabled = false;
+    return;
+  }
+
+  // STT
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { showToast('⚠️ 이 브라우저는 음성인식 미지원 (Chrome 권장)', 'warning'); return; }
+
+  recognition = new SR();
+  recognition.lang = 'ko-KR';
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  recognition.onresult = e => {
+    for (let i = e.results.length - 1; i >= 0; i--) {
+      const r = e.results[i];
+      const text = r[0].transcript.trim();
+      if (!text) continue;
+      if (r.isFinal) {
+        document.getElementById('stt-caption').style.display = 'none';
+        document.getElementById('stt-caption').textContent = '🎙 말하는 중...';
+        pushDialogue('나 (STT)', text);
+      } else {
+        document.getElementById('stt-caption').textContent = `🎙 ${text}...`;
+        document.getElementById('stt-caption').style.display = 'block';
+      }
+      break;
+    }
+  };
+  recognition.onend = () => { if (state.sttEnabled && recognition) try { recognition.start(); } catch {} };
+  try { recognition.start(); } catch {}
+}
+
+function stopMic() {
+  if (vadFrame) cancelAnimationFrame(vadFrame);
+  if (vadTimer) clearTimeout(vadTimer);
+  audioCtx?.close();
+  stream?.getTracks().forEach(t => t.stop());
+  recognition?.abort();
+  recognition = null;
+  micSpeaking = false;
+}
+
+// ══════════════════════════════════════════════════
+// 사이드바
+// ══════════════════════════════════════════════════
+function toggleSidebar() {
+  state.sidebarOpen = !state.sidebarOpen;
+  document.getElementById('sidebar').classList.toggle('open', state.sidebarOpen);
+}
+
+// ══════════════════════════════════════════════════
+// 토스트
+// ══════════════════════════════════════════════════
+function showToast(text, level = 'info') {
+  const wrap = document.getElementById('toast-wrap');
+  const div = document.createElement('div');
+  div.className = `toast ${level}`;
+  div.textContent = text;
+  wrap.appendChild(div);
+  setTimeout(() => { div.style.opacity = '0'; div.style.transition = 'opacity 0.4s'; setTimeout(() => div.remove(), 400); }, 3500);
+}
+
+// ══════════════════════════════════════════════════
+// 전체화면
+// ══════════════════════════════════════════════════
+function toggleFullscreen() {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else document.getElementById('vn-viewer').requestFullscreen();
+}
+
+// 대화 로그 열기/닫기
+function openLog() {
+  state.logOpen = true;
+  const overlay = document.getElementById('log-overlay');
+  const content = document.getElementById('log-content');
+  overlay.style.display = 'flex';
+  
+  content.innerHTML = state.historyLog.map(log => `
+    <div class="log-entry">
+      <div class="log-speaker">${log.speaker}</div>
+      <div class="log-text">${log.text.replace(/\n/g, '<br>')}</div>
+    </div>
+  `).join('');
+  
+  // 맨 아래로 스크롤
+  setTimeout(() => { content.scrollTop = content.scrollHeight; }, 10);
+}
+
+function closeLog() {
+  state.logOpen = false;
+  document.getElementById('log-overlay').style.display = 'none';
+}
+
+// 키보드 & 마우스 휠 이벤트
+document.addEventListener('wheel', e => {
+  if (document.getElementById('vn-viewer').style.display !== 'none' && document.getElementById('dashboard-screen').style.display === 'none') {
+    if (e.deltaY < 0 && !state.logOpen) {
+      openLog();
+    } else if (e.deltaY > 0) {
+      if (state.logOpen) {
+        const content = document.getElementById('log-content');
+        // 로그창 내부 스크롤이 맨 아래에 도달한 상태에서 휠을 내리면 닫기
+        if (content.scrollTop + content.clientHeight >= content.scrollHeight - 5) {
+          closeLog();
+        }
+      } else {
+        handleDialogueClick();
+      }
+    }
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (['Space', 'Enter', 'ArrowDown', 'ArrowRight'].includes(e.code)) {
+    e.preventDefault();
+    if (state.logOpen) closeLog();
+    else handleDialogueClick();
+  }
+  if (e.code === 'KeyA') toggleAuto();
+  if (e.code === 'KeyF') toggleFullscreen();
+  if (e.code === 'Escape') {
+    if (state.logOpen) closeLog();
+  }
+});
+
+document.addEventListener('click', e => {
+  // 뷰어 화면이 아니거나 UI 버튼 클릭 시엔 무시
+  if (document.getElementById('vn-viewer').style.display === 'none' || document.getElementById('dashboard-screen').style.display !== 'none') return;
+  if (e.target.closest('#demo-panel') || e.target.closest('#controls') || e.target.closest('.vn-return-btn') || e.target.closest('.log-close-btn')) return;
+  
+  if (state.logOpen) {
+    // 로그 창이 열려있을 때 빈 공간 좌클릭 시 닫기
+    closeLog();
+  } else {
+    // 일반 상태일 때 좌클릭 시 대사 넘기기 (다이얼로그 클릭과 동일)
+    handleDialogueClick();
+  }
+});
+</script>
+</body>
+</html>

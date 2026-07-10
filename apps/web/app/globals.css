@@ -1,0 +1,463 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@400;600;700&family=Cinzel:wght@400;600&display=swap');
+
+/* ══════════════════════════════════════════════════
+   CSS 변수 — 디자인 토큰
+══════════════════════════════════════════════════ */
+:root {
+  /* Colors */
+  --color-bg-primary: #313338;
+  --color-bg-secondary: #2b2d31;
+  --color-bg-card: #232428;
+  --color-bg-glass: rgba(43, 45, 49, 0.75);
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-border-bright: rgba(255, 255, 255, 0.2);
+
+  --color-accent-primary: #949BA4; /* 디스코드풍 텍스트/아이콘 회색 */
+  --color-accent-secondary: #80848E;
+  --color-accent-glow: rgba(148, 155, 164, 0.35);
+  --color-accent-gold: #c9a84c;
+  --color-accent-gold-glow: rgba(201, 168, 76, 0.3);
+
+  --color-text-primary: #f2f3f5;
+  --color-text-secondary: #b5bac1;
+  --color-text-muted: #949ba4;
+  --color-text-dialogue: #ffffff;
+
+  --color-hp: #e05555;
+  --color-hp-bg: rgba(224, 85, 85, 0.2);
+  --color-mp: #5588e0;
+  --color-mp-bg: rgba(85, 136, 224, 0.2);
+  --color-success: #55c48a;
+  --color-warning: #e0a855;
+  --color-danger: #e05555;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+
+  /* Typography */
+  --font-sans: 'Noto Sans KR', sans-serif;
+  --font-serif: 'Noto Serif KR', serif;
+  --font-title: 'Cinzel', serif;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 300ms ease;
+  --transition-slow: 600ms ease;
+  --transition-crossfade: 1500ms ease-in-out;
+
+  /* Z-Index Layers */
+  --z-background: 0;
+  --z-character: 100;
+  --z-dialogue: 200;
+  --z-sidebar: 300;
+  --z-toast: 400;
+  --z-dice: 500;
+  --z-tooltip: 600;
+  --z-modal: 700;
+
+  /* Viewer */
+  --viewer-width: 100vw;
+  --viewer-height: 100vh;
+  --dialogue-height: 200px;
+  --sidebar-width: 280px;
+}
+
+/* ══════════════════════════════════════════════════
+   Reset & Base
+══════════════════════════════════════════════════ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--color-accent-primary); text-decoration: none; }
+a:hover { color: var(--color-text-primary); }
+
+button {
+  font-family: var(--font-sans);
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input, textarea, select {
+  font-family: var(--font-sans);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  border-radius: 8px;
+  padding: var(--space-sm) var(--space-md);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 3px var(--color-accent-glow);
+}
+
+/* ══════════════════════════════════════════════════
+   유틸리티
+══════════════════════════════════════════════════ */
+.glass {
+  background: var(--color-bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--color-border);
+}
+
+.glow-accent {
+  box-shadow: 0 0 20px var(--color-accent-glow), 0 0 60px var(--color-accent-glow);
+}
+
+.glow-gold {
+  box-shadow: 0 0 15px var(--color-accent-gold-glow);
+}
+
+.scrollbar-custom::-webkit-scrollbar { width: 4px; }
+.scrollbar-custom::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-custom::-webkit-scrollbar-thumb {
+  background: var(--color-accent-secondary);
+  border-radius: 4px;
+}
+
+/* ══════════════════════════════════════════════════
+   버튼 컴포넌트
+══════════════════════════════════════════════════ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary));
+  color: white;
+  box-shadow: 0 4px 15px var(--color-accent-glow);
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px var(--color-accent-glow);
+  filter: brightness(1.1);
+}
+
+.btn-secondary {
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+.btn-secondary:hover {
+  border-color: var(--color-accent-primary);
+  background: rgba(124, 106, 247, 0.1);
+}
+
+.btn-ghost {
+  color: var(--color-text-secondary);
+  padding: var(--space-xs) var(--space-sm);
+}
+.btn-ghost:hover {
+  color: var(--color-text-primary);
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+}
+
+.btn-danger {
+  background: rgba(224, 85, 85, 0.15);
+  color: var(--color-danger);
+  border: 1px solid rgba(224, 85, 85, 0.3);
+}
+.btn-danger:hover {
+  background: rgba(224, 85, 85, 0.25);
+  border-color: var(--color-danger);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* ══════════════════════════════════════════════════
+   카드 컴포넌트
+══════════════════════════════════════════════════ */
+.card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: var(--space-lg);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.card:hover {
+  border-color: var(--color-border-bright);
+  box-shadow: 0 4px 30px rgba(0,0,0,0.3);
+}
+
+/* ══════════════════════════════════════════════════
+   HP / MP 바
+══════════════════════════════════════════════════ */
+.stat-bar-container {
+  width: 100%;
+}
+.stat-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  margin-bottom: 4px;
+  color: var(--color-text-secondary);
+}
+.stat-bar-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.stat-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.stat-bar-fill.hp {
+  background: linear-gradient(90deg, #c0392b, var(--color-hp));
+  box-shadow: 0 0 8px rgba(224, 85, 85, 0.5);
+}
+.stat-bar-fill.mp {
+  background: linear-gradient(90deg, #1a4fa0, var(--color-mp));
+  box-shadow: 0 0 8px rgba(85, 136, 224, 0.5);
+}
+
+/* ══════════════════════════════════════════════════
+   툴팁
+══════════════════════════════════════════════════ */
+.glossary-word {
+  color: #88aaff;
+  border-bottom: 1px dashed rgba(136, 170, 255, 0.5);
+  cursor: help;
+  position: relative;
+}
+.glossary-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-bright);
+  border-radius: 8px;
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.8rem;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  max-width: 260px;
+  white-space: normal;
+  z-index: var(--z-tooltip);
+  pointer-events: none;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+  animation: tooltipIn 150ms ease;
+}
+.glossary-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--color-border-bright);
+}
+@keyframes tooltipIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ══════════════════════════════════════════════════
+   토스트 시스템 메시지
+══════════════════════════════════════════════════ */
+.toast-container {
+  position: fixed;
+  top: var(--space-xl);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  pointer-events: none;
+}
+.toast {
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: 50px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  backdrop-filter: blur(20px);
+  animation: toastSlide 300ms ease;
+}
+.toast.info { background: rgba(85, 136, 224, 0.85); color: white; }
+.toast.warning { background: rgba(224, 168, 85, 0.85); color: #1a1000; }
+.toast.error { background: rgba(224, 85, 85, 0.85); color: white; }
+@keyframes toastSlide {
+  from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ══════════════════════════════════════════════════
+   대시보드 상단 바 레이아웃
+══════════════════════════════════════════════════ */
+.dashboard-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--color-bg-primary);
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-xl);
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
+  height: 72px;
+  flex-shrink: 0;
+}
+.topbar-left .logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-family: var(--font-title);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.topbar-right .btn-ghost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+.dashboard-main {
+  flex: 1;
+  padding: var(--space-xl) auto;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+.page-title {
+  font-family: var(--font-title);
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-xs);
+  letter-spacing: 0.05em;
+}
+.page-subtitle {
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  margin-bottom: var(--space-xl);
+}
+
+/* ══════════════════════════════════════════════════
+   로딩 스피너
+══════════════════════════════════════════════════ */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(124, 106, 247, 0.2);
+  border-top-color: var(--color-accent-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ══════════════════════════════════════════════════
+   디스코드 로그인 버튼
+══════════════════════════════════════════════════ */
+.discord-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 14px 28px;
+  background: #5865F2;
+  color: white;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all var(--transition-fast);
+  box-shadow: 0 4px 20px rgba(88, 101, 242, 0.4);
+}
+.discord-btn:hover {
+  background: #4752C4;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(88, 101, 242, 0.5);
+  color: white;
+}
+.discord-btn svg { width: 24px; height: 24px; flex-shrink: 0; }
+
+/* ══════════════════════════════════════════════════
+   형광 태그 뱃지
+══════════════════════════════════════════════════ */
+.tag-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: rgba(124, 106, 247, 0.15);
+  color: var(--color-accent-primary);
+  border: 1px solid rgba(124, 106, 247, 0.3);
+}
+
+/* ══════════════════════════════════════════════════
+   이미지 업로드 드롭존
+══════════════════════════════════════════════════ */
+.dropzone {
+  border: 2px dashed var(--color-border);
+  border-radius: 12px;
+  padding: var(--space-xl);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: var(--color-text-muted);
+}
+.dropzone:hover, .dropzone.drag-over {
+  border-color: var(--color-accent-primary);
+  background: rgba(124, 106, 247, 0.05);
+  color: var(--color-text-secondary);
+}
+
+/* ══════════════════════════════════════════════════
+   반응형
+══════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .dashboard-sidebar { display: none; }
+  .dashboard-main { padding: var(--space-md); }
+}

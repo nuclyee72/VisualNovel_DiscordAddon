@@ -1,0 +1,252 @@
+/* ══════════════════════════════════════════════════
+   랜딩 페이지 전용 스타일
+══════════════════════════════════════════════════ */
+
+.landing {
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ── 배경 orb ─────────────────────────────────── */
+.landing-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+.landing-bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.15;
+}
+.orb1 {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, #7c6af7, transparent);
+  top: -100px; left: -100px;
+  animation: orbFloat 8s ease-in-out infinite;
+}
+.orb2 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, #c9a84c, transparent);
+  top: 40%; right: -80px;
+  animation: orbFloat 10s ease-in-out infinite reverse;
+}
+.orb3 {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, #5b4dc4, transparent);
+  bottom: -80px; left: 30%;
+  animation: orbFloat 12s ease-in-out infinite;
+}
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%  { transform: translate(30px, -20px) scale(1.05); }
+  66%  { transform: translate(-20px, 15px) scale(0.95); }
+}
+
+/* ── 헤더 ──────────────────────────────────────── */
+.landing-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 60px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(10, 10, 18, 0.8);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--color-border);
+}
+.landing-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-title);
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--color-text-primary);
+}
+.landing-logo-icon {
+  font-size: 1.5rem;
+  filter: drop-shadow(0 0 8px var(--color-accent-primary));
+}
+.landing-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  font-size: 0.9rem;
+}
+.landing-nav a:not(.btn) { color: var(--color-text-secondary); }
+.landing-nav a:not(.btn):hover { color: var(--color-text-primary); }
+
+/* ── 히어로 ─────────────────────────────────────── */
+.landing-hero {
+  text-align: center;
+  padding: 100px 20px 80px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+.landing-hero-badge {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 20px;
+  background: rgba(124, 106, 247, 0.12);
+  border: 1px solid rgba(124, 106, 247, 0.3);
+  color: var(--color-accent-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: var(--space-lg);
+  letter-spacing: 0.05em;
+}
+.landing-hero-title {
+  font-family: var(--font-title);
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 600;
+  line-height: 1.2;
+  margin-bottom: var(--space-lg);
+  letter-spacing: 0.02em;
+}
+.landing-hero-highlight {
+  background: linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-gold));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.landing-hero-desc {
+  font-size: 1.1rem;
+  color: var(--color-text-secondary);
+  line-height: 1.7;
+  margin-bottom: var(--space-xl);
+}
+.landing-hero-cta {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-xl);
+}
+
+.landing-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-lg);
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  flex-wrap: wrap;
+}
+.landing-stat span { color: var(--color-accent-primary); font-weight: 600; }
+.landing-stat-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--color-border);
+}
+
+/* ── 기능 섹션 ─────────────────────────────────── */
+.landing-features {
+  padding: 80px 60px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.landing-section-title {
+  font-family: var(--font-title);
+  font-size: 2rem;
+  text-align: center;
+  margin-bottom: var(--space-xl);
+  letter-spacing: 0.05em;
+  color: var(--color-text-primary);
+}
+.landing-features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-lg);
+}
+.landing-feature-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.landing-feature-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+}
+.landing-feature-icon { font-size: 2.5rem; margin-bottom: var(--space-md); }
+.landing-feature-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: var(--space-sm);
+  color: var(--color-text-primary);
+}
+.landing-feature-desc {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+/* ── 사용법 ─────────────────────────────────────── */
+.landing-how {
+  padding: 80px 60px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+.landing-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+.landing-step {
+  display: flex;
+  gap: var(--space-lg);
+  align-items: flex-start;
+}
+.landing-step-num {
+  font-family: var(--font-title);
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--color-accent-primary);
+  opacity: 0.5;
+  flex-shrink: 0;
+  width: 60px;
+}
+.landing-step-content h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.landing-step-content p {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+/* ── CTA 섹션 ─────────────────────────────────── */
+.landing-cta-section {
+  text-align: center;
+  padding: 100px 20px;
+  background: linear-gradient(180deg, transparent, rgba(124, 106, 247, 0.05));
+}
+.landing-cta-section h2 {
+  font-family: var(--font-title);
+  font-size: 2rem;
+  margin-bottom: var(--space-sm);
+}
+.landing-cta-section p {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xl);
+}
+
+/* ── 푸터 ─────────────────────────────────────── */
+.landing-footer {
+  text-align: center;
+  padding: var(--space-xl) 20px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+  .landing-header { padding: 16px 20px; }
+  .landing-features { padding: 60px 20px; }
+  .landing-how { padding: 60px 20px; }
+  .landing-features-grid { grid-template-columns: 1fr; }
+  .landing-hero { padding: 60px 20px; }
+}
