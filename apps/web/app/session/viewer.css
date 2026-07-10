@@ -67,11 +67,11 @@
 }
 
 /* 위치별 배치 */
-.vn-character[data-pos="0"] { left: 5%;  transform: scale(0.82) translateX(-20px); }
-.vn-character[data-pos="1"] { left: 18%; transform: scale(0.85); }
-.vn-character[data-pos="2"] { left: 50%; transform: translateX(-50%) scale(0.88); }
-.vn-character[data-pos="3"] { right: 18%; transform: scale(0.85); }
-.vn-character[data-pos="4"] { right: 5%;  transform: scale(0.82) translateX(20px); }
+.vn-character[data-pos="0"] { left: 5%;  transform: translateX(-20px); }
+.vn-character[data-pos="1"] { left: 18%; }
+.vn-character[data-pos="2"] { left: 50%; transform: translateX(-50%); }
+.vn-character[data-pos="3"] { right: 18%; }
+.vn-character[data-pos="4"] { right: 5%;  transform: translateX(20px); }
 
 /* 비발언자 — 반투명 대기 (Layer 1) */
 .vn-character.idle {
@@ -85,18 +85,11 @@
   opacity: 1;
   filter: brightness(1.15) saturate(1.1);
   z-index: 200;
+  transform: translateY(-20px);
 }
-/* 발언자가 중앙 위치가 아닐 때 팝업 애니메이션 */
-.vn-character.speaking[data-pos="0"],
-.vn-character.speaking[data-pos="4"] {
-  transform: scale(0.95) translateY(-20px);
-}
-.vn-character.speaking[data-pos="1"],
-.vn-character.speaking[data-pos="3"] {
-  transform: scale(0.97) translateY(-20px);
-}
+/* 센터 배치된 캐릭터의 발언 팝업 처리 */
 .vn-character.speaking[data-pos="2"] {
-  transform: translateX(-50%) scale(1.05) translateY(-20px);
+  transform: translateX(-50%) translateY(-20px);
 }
 
 .vn-character-composite {

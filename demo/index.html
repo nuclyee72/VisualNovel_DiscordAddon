@@ -56,17 +56,14 @@
     .char-slot.speaking { opacity: 1; filter: brightness(1.15) saturate(1.1); z-index: 200; }
 
     /* 위치 */
-    .char-slot[data-pos="0"] { left: 6%;  transform: scale(0.8); }
-    .char-slot[data-pos="1"] { left: 22%; transform: scale(0.86); }
-    .char-slot[data-pos="2"] { left: 50%; transform: translateX(-50%) scale(0.9); }
-    .char-slot[data-pos="3"] { right: 22%; transform: scale(0.86); }
-    .char-slot[data-pos="4"] { right: 6%;  transform: scale(0.8); }
+    .char-slot[data-pos="0"] { left: 6%; }
+    .char-slot[data-pos="1"] { left: 22%; }
+    .char-slot[data-pos="2"] { left: 50%; transform: translateX(-50%); }
+    .char-slot[data-pos="3"] { right: 22%; }
+    .char-slot[data-pos="4"] { right: 6%; }
     
-    .char-slot.speaking[data-pos="0"] { transform: scale(0.9) translateY(-20px); }
-    .char-slot.speaking[data-pos="1"] { transform: scale(0.94) translateY(-20px); }
-    .char-slot.speaking[data-pos="2"] { transform: translateX(-50%) scale(1.05) translateY(-20px); }
-    .char-slot.speaking[data-pos="3"] { transform: scale(0.94) translateY(-20px); }
-    .char-slot.speaking[data-pos="4"] { transform: scale(0.9) translateY(-20px); }
+    .char-slot.speaking { transform: translateY(-20px); }
+    .char-slot.speaking[data-pos="2"] { transform: translateX(-50%) translateY(-20px); }
 
     .char-avatar {
       width: 100px; height: 100px;
@@ -295,7 +292,7 @@
     </div>
     <div class="topbar-right">
       <button class="btn-ghost" title="종합 설정">⚙</button>
-      <button class="btn-ghost" title="내 캐릭터 관리">🧑</button>
+      <button class="btn-ghost" title="내 캐릭터 관리" onclick="window.location.href='http://localhost:3000/dashboard/character'">🧑</button>
     </div>
   </header>
   <main class="dashboard-main">
