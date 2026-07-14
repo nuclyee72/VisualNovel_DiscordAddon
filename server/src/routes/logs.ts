@@ -1,21 +1,28 @@
 import { Router, Response } from 'express';
 import { SessionLog } from '../models/SessionLog';
-import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { authMiddleware, AuthRequest, isGuildMember } from '../middleware/auth';
+import { asyncHandler } from '../utils/asyncHandler';
 
 const router = Router();
 router.use(authMiddleware);
 
 // 세션 로그 조회
-router.get('/:sessionId', async (req: AuthRequest, res: Response) => {
+router.get('/:sessionId', asyncHandler(async (req: AuthRequest, res: Response) => {
   const log = await SessionLog.findOne({ sessionId: req.params.sessionId }).lean();
   if (!log) return res.status(404).json({ error: '로그를 찾을 수 없습니다.' });
+  if (!(await isGuildMember(req.user!.discordId, log.guildId))) {
+    return res.status(403).json({ error: '이 서버의 멤버만 조회할 수 있습니다.' });
+  }
   return res.json(log);
-});
+}));
 
 // TXT 다운로드
-router.get('/:sessionId/download/txt', async (req: AuthRequest, res: Response) => {
+router.get('/:sessionId/download/txt', asyncHandler(async (req: AuthRequest, res: Response) => {
   const log = await SessionLog.findOne({ sessionId: req.params.sessionId }).lean();
   if (!log) return res.status(404).json({ error: '로그를 찾을 수 없습니다.' });
+  if (!(await isGuildMember(req.user!.discordId, log.guildId))) {
+    return res.status(403).json({ error: '이 서버의 멤버만 다운로드할 수 있습니다.' });
+  }
 
   const lines: string[] = [
     '===== TRPG 세션 로그 =====',
@@ -54,6 +61,9 @@ router.get('/:sessionId/download/txt', async (req: AuthRequest, res: Response) =
       case 'system':
         lines.push(`${time} ⚙️  ${entry.content}`);
         break;
+      case 'expression':
+        lines.push(`${time} 🙂 ${entry.content}`);
+        break;
     }
   }
 
@@ -68,12 +78,15 @@ router.get('/:sessionId/download/txt', async (req: AuthRequest, res: Response) =
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
   return res.send(Buffer.from(content, 'utf-8'));
-});
+}));
 
 // JSON 다운로드
-router.get('/:sessionId/download/json', async (req: AuthRequest, res: Response) => {
+router.get('/:sessionId/download/json', asyncHandler(async (req: AuthRequest, res: Response) => {
   const log = await SessionLog.findOne({ sessionId: req.params.sessionId }).lean();
   if (!log) return res.status(404).json({ error: '로그를 찾을 수 없습니다.' });
+  if (!(await isGuildMember(req.user!.discordId, log.guildId))) {
+    return res.status(403).json({ error: '이 서버의 멤버만 다운로드할 수 있습니다.' });
+  }
 
   const filename = `${log.sessionName}_log.json`;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -93,6 +106,6 @@ router.get('/:sessionId/download/json', async (req: AuthRequest, res: Response) 
       metadata: e.metadata,
     })),
   });
-});
+}));
 
 export default router;

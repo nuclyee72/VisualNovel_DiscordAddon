@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
-import { socket, activeSessions } from '../index';
-import { SOCKET_EVENTS } from '../../../packages/shared/src/index';
+import { socket, activeSessions } from '../state';
+import { SOCKET_EVENTS } from '../../../../packages/shared/src/index';
 import type { SlashCommandType } from '../types';
 
 const EXPRESSION_CHOICES = [

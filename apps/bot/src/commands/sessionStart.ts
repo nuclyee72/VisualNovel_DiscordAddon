@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
-import { socket, activeSessions } from '../index';
-import { SOCKET_EVENTS } from '../../../packages/shared/src/index';
+import { socket, activeSessions } from '../state';
+import { SOCKET_EVENTS } from '../../../../packages/shared/src/index';
 import axios from 'axios';
 import type { SlashCommandType } from '../types';
 
@@ -18,8 +18,13 @@ export default {
 
     try {
       const backendUrl = process.env.BACKEND_URL || 'http://localhost:4000';
+      const headers = {
+        'x-bot-secret': process.env.BOT_SECRET,
+        'x-discord-user-id': interaction.user.id,
+      };
+
       // 세션 유효성 확인
-      const res = await axios.get(`${backendUrl}/api/sessions/${sessionId}`);
+      const res = await axios.get(`${backendUrl}/api/sessions/${sessionId}`, { headers });
       const session = res.data as { name: string; status: string; masterId: string };
 
       if (session.status === 'ended') {
@@ -27,14 +32,15 @@ export default {
         return;
       }
 
+      // 세션 시작 신호 (마스터 권한 검증은 서버에서 수행됨)
+      await axios.patch(`${backendUrl}/api/sessions/${sessionId}/start`, {}, { headers });
+
+      // PATCH가 성공한 이후에만 로컬 상태를 커밋한다 (실패 시 롤백 불필요)
       // 현재 길드에 세션 매핑
       activeSessions.set(guildId, sessionId);
 
       // Socket.IO 룸 입장
       socket.emit('client:join_session', { sessionId });
-
-      // 세션 시작 신호
-      await axios.patch(`${backendUrl}/api/sessions/${sessionId}/start`);
 
       // 시스템 메시지 브로드캐스트
       socket.emit(SOCKET_EVENTS.MASTER_SYSTEM, {
@@ -44,7 +50,7 @@ export default {
         timestamp: Date.now(),
       });
 
-      const webUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/session/${sessionId}`;
+      const webUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/session/${sessionId}?guildId=${guildId}`;
       await interaction.reply(
         `✅ **세션 연결 완료!**\n` +
         `세션명: **${session.name}**\n` +
@@ -53,7 +59,13 @@ export default {
       );
     } catch (err) {
       console.error('[Bot] /세션시작 error:', err);
-      await interaction.reply({ content: '❌ 세션을 찾을 수 없습니다. ID를 확인해주세요.', ephemeral: true });
+      const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+      const message =
+        status === 404 ? '❌ 세션을 찾을 수 없습니다. ID를 확인해주세요.'
+        : status === 403 ? '❌ 마스터만 세션을 시작할 수 있습니다.'
+        : status === 401 ? '❌ 서버 인증에 실패했습니다. (BOT_SECRET 설정을 확인해주세요)'
+        : '❌ 세션 시작 중 오류가 발생했습니다.';
+      await interaction.reply({ content: message, ephemeral: true });
     }
   },
 } satisfies SlashCommandType;

@@ -14,11 +14,16 @@ export async function handleInteractionCreate(interaction: Interaction) {
     await command.execute(interaction as ChatInputCommandInteraction);
   } catch (err) {
     console.error(`[Bot] Command error (${interaction.commandName}):`, err);
-    const errorMsg = { content: '명령어 실행 중 오류가 발생했습니다.', ephemeral: true };
-    if (interaction.replied || interaction.deferred) {
-      await interaction.followUp(errorMsg);
-    } else {
-      await interaction.reply(errorMsg);
+    const errorMsg = { content: '❌ 명령어 처리 중 오류가 발생했습니다.', ephemeral: true };
+    try {
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp(errorMsg);
+      } else {
+        await interaction.reply(errorMsg);
+      }
+    } catch (replyErr) {
+      // 인터랙션 토큰 만료 등으로 응답 자체가 실패할 수 있으므로 여기서 전파하지 않는다.
+      console.error(`[Bot] Failed to notify user of command error (${interaction.commandName}):`, replyErr);
     }
   }
 }

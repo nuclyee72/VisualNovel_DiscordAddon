@@ -1,4 +1,4 @@
-import { Topbar } from '@/components/layout/Topbar';
+import { Sidebar } from '@/components/layout/Sidebar';
 
 export default function DashboardLayout({
   children,
@@ -6,9 +6,9 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="dashboard-layout">
-      <Topbar />
-      <main className="dashboard-main">
+    <div className="admin-shell">
+      <Sidebar />
+      <main className="admin-content">
         {children}
       </main>
     </div>

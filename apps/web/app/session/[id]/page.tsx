@@ -9,8 +9,8 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
-    title: `세션 뷰어 | TRPG Visual Novel`,
-    description: '비주얼 노벨 TRPG 세션 화면',
+    title: `세션 뷰어 | 비주얼 노벨`,
+    description: '비주얼 노벨 세션 화면',
   };
 }
 

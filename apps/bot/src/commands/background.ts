@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
-import { socket, activeSessions } from '../index';
-import { SOCKET_EVENTS, BACKGROUND_PRESETS, extractYoutubeId } from '../../../packages/shared/src/index';
+import { socket, activeSessions } from '../state';
+import { SOCKET_EVENTS, BACKGROUND_PRESETS, extractYoutubeId } from '../../../../packages/shared/src/index';
 import type { SlashCommandType } from '../types';
 
 export default {

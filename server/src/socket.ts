@@ -11,21 +11,57 @@ interface AuthenticatedSocket extends Socket {
   discordId?: string;
   userName?: string;
   isBotConnection?: boolean;
+  joinedSessionId?: string;
+}
+
+// vn_token 쿠키는 httpOnly라 브라우저 JS(document.cookie)에서 읽을 수 없다.
+// 소켓 핸드셰이크 요청에는 쿠키가 자동으로 실려오므로 서버에서 직접 파싱한다.
+function parseCookies(cookieHeader?: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  if (!cookieHeader) return result;
+  cookieHeader.split(';').forEach((pair) => {
+    const idx = pair.indexOf('=');
+    if (idx === -1) return;
+    const key = pair.slice(0, idx).trim();
+    const value = pair.slice(idx + 1).trim();
+    try {
+      result[key] = decodeURIComponent(value);
+    } catch {
+      result[key] = value;
+    }
+  });
+  return result;
+}
+
+// 소켓 이벤트 핸들러를 감싸서, 잘못된 payload 등으로 인한 예외가 unhandled rejection으로
+// 새지 않고 로그만 남긴 채 조용히 무시되도록 한다 (다른 이벤트/연결에 영향 없음).
+function safe<T>(fn: (payload: T) => Promise<void> | void) {
+  return async (payload: T) => {
+    try {
+      await fn(payload);
+    } catch (err) {
+      console.error('[Socket] Handler error:', err);
+    }
+  };
+}
+
+// 봇 쪽 activeSessions 캐시가 (웹 대시보드에서 세션이 종료되는 등의 이유로) 오래된 값을
+// 들고 있을 수 있으므로, 마스터 이벤트는 매번 서버에서 세션 상태를 다시 확인한다.
+async function isActiveSession(sessionId: string): Promise<boolean> {
+  const session = await Session.findOne({ sessionId }).select('status').lean();
+  return !!session && session.status === 'active';
 }
 
 export function initSocketIO(httpServer: HTTPServer): SocketIOServer {
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: process.env.NEXT_PUBLIC_BACKEND_URL
-        ? [process.env.NEXT_PUBLIC_BACKEND_URL, 'http://localhost:3000']
-        : 'http://localhost:3000',
+      origin: ['http://localhost:3000', process.env.FRONTEND_URL || ''].filter(Boolean),
       credentials: true,
     },
   });
 
   // ── 인증 미들웨어 ──────────────────────────────────────────
   io.use((socket: AuthenticatedSocket, next) => {
-    const token = socket.handshake.auth?.token as string | undefined;
     const botSecret = socket.handshake.auth?.botSecret as string | undefined;
 
     // 봇 연결 인증
@@ -34,7 +70,10 @@ export function initSocketIO(httpServer: HTTPServer): SocketIOServer {
       return next();
     }
 
-    // 일반 유저 JWT 인증
+    // 일반 유저 JWT 인증 — httpOnly 쿠키는 핸드셰이크 요청 헤더에서 직접 읽는다
+    const cookies = parseCookies(socket.handshake.headers.cookie);
+    const token = cookies['vn_token'];
+
     if (!token) {
       return next(new Error('Authentication error: No token'));
     }
@@ -60,7 +99,8 @@ export function initSocketIO(httpServer: HTTPServer): SocketIOServer {
     );
 
     // 세션 룸 입장
-    socket.on(SOCKET_EVENTS.CLIENT_JOIN_SESSION, async ({ sessionId }: { sessionId: string }) => {
+    socket.on(SOCKET_EVENTS.CLIENT_JOIN_SESSION, safe(async ({ sessionId }: { sessionId: string }) => {
+      if (!sessionId || typeof sessionId !== 'string') return;
       const roomName = `session:${sessionId}`;
 
       // 세션 유효성 확인
@@ -70,7 +110,17 @@ export function initSocketIO(httpServer: HTTPServer): SocketIOServer {
         return;
       }
 
+      // 실제 세션 참가자인지 확인 (sessionId만 알면 아무나 들어와 엿듣는 것을 방지)
+      if (!socket.isBotConnection) {
+        const isParticipant = session.participants.some((p) => p.discordId === socket.discordId);
+        if (!isParticipant) {
+          socket.emit('error', { message: '이 세션의 참가자가 아닙니다. 먼저 세션에 참가해주세요.' });
+          return;
+        }
+      }
+
       socket.join(roomName);
+      socket.joinedSessionId = sessionId;
       console.log(`[Socket] ${socket.userName || 'BOT'} joined room: ${roomName}`);
 
       // 입장 알림 브로드캐스트 (봇 연결 제외)
@@ -103,12 +153,13 @@ export function initSocketIO(httpServer: HTTPServer): SocketIOServer {
           timestamp: Date.now(),
         });
       }
-    });
+    }));
 
     // ── 봇 → 전체 브로드캐스트 이벤트들 ──────────────────────
 
-    socket.on(SOCKET_EVENTS.MASTER_BACKGROUND, async (payload) => {
-      if (!socket.isBotConnection) return;
+    socket.on(SOCKET_EVENTS.MASTER_BACKGROUND, safe(async (payload: any) => {
+      if (!socket.isBotConnection || !payload?.sessionId) return;
+      if (!(await isActiveSession(payload.sessionId))) return;
       const roomName = `session:${payload.sessionId}`;
       io.to(roomName).emit(SOCKET_EVENTS.VN_BACKGROUND, payload);
       await appendLog(payload.sessionId, {
@@ -117,10 +168,11 @@ export function initSocketIO(httpServer: HTTPServer): SocketIOServer {
         content: `배경 전환: ${payload.name}`,
         metadata: { url: payload.url },
       });
-    });
+    }));
 
-    socket.on(SOCKET_EVENTS.MASTER_BGM, async (payload) => {
-      if (!socket.isBotConnection) return;
+    socket.on(SOCKET_EVENTS.MASTER_BGM, safe(async (payload: any) => {
+      if (!socket.isBotConnection || !payload?.sessionId) return;
+      if (!(await isActiveSession(payload.sessionId))) return;
       const roomName = `session:${payload.sessionId}`;
       io.to(roomName).emit(SOCKET_EVENTS.VN_BGM, payload);
       await appendLog(payload.sessionId, {
@@ -129,10 +181,11 @@ export function initSocketIO(httpServer: HTTPServer): SocketIOServer {
         content: `🎵 BGM 전환: ${payload.name}`,
         metadata: { url: payload.url },
       });
-    });
+    }));
 
-    socket.on(SOCKET_EVENTS.MASTER_DICE, async (payload) => {
-      if (!socket.isBotConnection) return;
+    socket.on(SOCKET_EVENTS.MASTER_DICE, safe(async (payload: any) => {
+      if (!socket.isBotConnection || !payload?.sessionId) return;
+      if (!(await isActiveSession(payload.sessionId))) return;
       const roomName = `session:${payload.sessionId}`;
       io.to(roomName).emit(SOCKET_EVENTS.VN_DICE, payload);
       await appendLog(payload.sessionId, {
@@ -143,22 +196,33 @@ export function initSocketIO(httpServer: HTTPServer): SocketIOServer {
         content: `🎲 ${payload.userName} - ${payload.formula}: ${payload.total}`,
         metadata: { rolls: payload.rolls, modifier: payload.modifier },
       });
-    });
+    }));
 
-    socket.on(SOCKET_EVENTS.MASTER_STATUS, async (payload) => {
-      if (!socket.isBotConnection) return;
+    socket.on(SOCKET_EVENTS.MASTER_STATUS, safe(async (payload: any) => {
+      if (!socket.isBotConnection || !payload?.sessionId) return;
+      if (!(await isActiveSession(payload.sessionId))) return;
       const roomName = `session:${payload.sessionId}`;
       io.to(roomName).emit(SOCKET_EVENTS.VN_STATUS_UPDATE, payload);
+
+      // 변경된 스탯을 캐릭터 문서에 실제로 반영 (다음 /hp, /mp 호출이 최신 값을 읽도록)
+      if ((payload.field === 'hp' || payload.field === 'mp') && payload.currentValue >= 0) {
+        await Character.updateOne(
+          { ownerId: payload.discordId },
+          { $set: { [`stats.${payload.field}.current`]: payload.currentValue } }
+        );
+      }
+
       await appendLog(payload.sessionId, {
         timestamp: Date.now(),
         type: 'status',
         content: `${payload.field.toUpperCase()} 변경: ${payload.delta > 0 ? '+' : ''}${payload.delta} → ${payload.currentValue}/${payload.maxValue}`,
         metadata: payload,
       });
-    });
+    }));
 
-    socket.on(SOCKET_EVENTS.MASTER_DIALOGUE, async (payload) => {
-      if (!socket.isBotConnection) return;
+    socket.on(SOCKET_EVENTS.MASTER_DIALOGUE, safe(async (payload: any) => {
+      if (!socket.isBotConnection || !payload?.sessionId) return;
+      if (!(await isActiveSession(payload.sessionId))) return;
       const roomName = `session:${payload.sessionId}`;
       io.to(roomName).emit(SOCKET_EVENTS.VN_DIALOGUE, payload);
       io.to(roomName).emit(SOCKET_EVENTS.VN_SPEAKER, {
@@ -174,26 +238,34 @@ export function initSocketIO(httpServer: HTTPServer): SocketIOServer {
         speakerId: payload.speakerDiscordId,
         content: payload.text,
       });
-    });
+    }));
 
-    socket.on(SOCKET_EVENTS.MASTER_EXPRESSION, async (payload) => {
-      if (!socket.isBotConnection) return;
+    socket.on(SOCKET_EVENTS.MASTER_EXPRESSION, safe(async (payload: any) => {
+      if (!socket.isBotConnection || !payload?.sessionId) return;
+      if (!(await isActiveSession(payload.sessionId))) return;
       const roomName = `session:${payload.sessionId}`;
       io.to(roomName).emit(SOCKET_EVENTS.VN_EXPRESSION, payload);
-    });
+      await appendLog(payload.sessionId, {
+        timestamp: Date.now(),
+        type: 'expression',
+        speakerId: payload.discordId,
+        content: `표정 변경: ${payload.tag}`,
+      });
+    }));
 
-    socket.on(SOCKET_EVENTS.MASTER_SYSTEM, async (payload) => {
-      if (!socket.isBotConnection) return;
+    socket.on(SOCKET_EVENTS.MASTER_SYSTEM, safe(async (payload: any) => {
+      if (!socket.isBotConnection || !payload?.sessionId) return;
+      if (!(await isActiveSession(payload.sessionId))) return;
       const roomName = `session:${payload.sessionId}`;
       io.to(roomName).emit(SOCKET_EVENTS.VN_SYSTEM_MESSAGE, payload);
-    });
+    }));
 
     // ── 브라우저 VAD 발언 감지 (클라이언트 → 서버 → 룸 전체) ──
-    socket.on(SOCKET_EVENTS.VOICE_SPEAKING, (payload: {
+    socket.on(SOCKET_EVENTS.VOICE_SPEAKING, safe((payload: {
       sessionId: string;
       isSpeaking: boolean;
     }) => {
-      if (socket.isBotConnection) return;
+      if (socket.isBotConnection || !payload?.sessionId) return;
       const roomName = `session:${payload.sessionId}`;
 
       if (payload.isSpeaking) {
@@ -211,17 +283,15 @@ export function initSocketIO(httpServer: HTTPServer): SocketIOServer {
           name: null,
         });
       }
-    });
+    }));
 
     // ── STT 텍스트 전송 (클라이언트 → 서버 → 방 전체) ───────
-
-
-    socket.on(SOCKET_EVENTS.STT_TRANSCRIPT, async (payload: {
+    socket.on(SOCKET_EVENTS.STT_TRANSCRIPT, safe(async (payload: {
       sessionId: string;
       text: string;
       isFinal: boolean;
     }) => {
-      if (socket.isBotConnection) return;
+      if (socket.isBotConnection || !payload?.sessionId) return;
       const roomName = `session:${payload.sessionId}`;
 
       // STT 결과를 대사로 브로드캐스트
@@ -247,11 +317,18 @@ export function initSocketIO(httpServer: HTTPServer): SocketIOServer {
           metadata: { source: 'stt' },
         });
       }
-    });
+    }));
 
     // ── 연결 해제 ──────────────────────────────────────────────
     socket.on('disconnect', () => {
       console.log(`[Socket] Disconnected: ${socket.id}`);
+      if (!socket.isBotConnection && socket.joinedSessionId && socket.discordId) {
+        const roomName = `session:${socket.joinedSessionId}`;
+        socket.to(roomName).emit(SOCKET_EVENTS.VN_PARTICIPANT_LEAVE, {
+          sessionId: socket.joinedSessionId,
+          discordId: socket.discordId,
+        });
+      }
     });
   });
 

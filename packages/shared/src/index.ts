@@ -68,14 +68,20 @@ export type BGMPayload = {
 };
 
 // 브라우저 VAD → 서버로 발언 상태 전송
+// 주의: 서버(server/src/socket.ts의 VOICE_SPEAKING 핸들러)는 클라이언트가 보낸
+// discordId를 신뢰하지 않고 인증된 socket.discordId를 사용하므로, 이 타입에는
+// discordId를 포함하지 않는다 (클라이언트가 굳이 보낼 필요도, 보낼 수단도 없음).
 export type VoiceSpeakingPayload = {
   sessionId: string;
-  discordId: string;
   isSpeaking: boolean;
 };
 
 // 세션 최대 참가자 수
 export const MAX_SESSION_PARTICIPANTS = 10;
+
+// 같은 화자가 연속으로 말할 때 새 대사창을 띄우지 않고 한 대사창에 줄바꿈으로
+// 이어붙일 수 있는 최대 줄 수. 이 줄 수를 넘으면 새 대사창으로 분리된다.
+export const MAX_MERGED_DIALOGUE_LINES = 10;
 
 export type ExpressionPayload = {
   sessionId: string;

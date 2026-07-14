@@ -1,6 +1,7 @@
 "use client";
 
-import { MouseEvent, useRef } from "react";
+import { MouseEvent, useRef, useState } from "react";
+import { SLICE_WIDTH, SLICE_HEIGHT } from "./FaceGridSlicer";
 
 interface AnchorPickerProps {
   imageUrl: string;
@@ -10,6 +11,9 @@ interface AnchorPickerProps {
 
 export function AnchorPicker({ imageUrl, anchor, onAnchorChange }: AnchorPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  // 표정 템플릿 생성 시 실제로 잘려나갈 800×1080 영역을 앵커 위에 겹쳐 보여주기
+  // 위해, 원본 이미지의 실제 픽셀 크기를 알아야 한다 (표시 크기는 축소되어 있으므로).
+  const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
 
   const handleClick = (e: MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
@@ -17,51 +21,56 @@ export function AnchorPicker({ imageUrl, anchor, onAnchorChange }: AnchorPickerP
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+    if (x < 0 || y < 0 || x > rect.width || y > rect.height) return;
 
-    // Calculate percentage coordinates
-    const percentX = (x / rect.width) * 100;
-    const percentY = (y / rect.height) * 100;
-
-    onAnchorChange({ x: percentX, y: percentY });
+    onAnchorChange({
+      x: Math.round((x / rect.width) * 1000) / 10,
+      y: Math.round((y / rect.height) * 1000) / 10,
+    });
   };
 
+  const cropBoxSize =
+    naturalSize && naturalSize.w > 0 && naturalSize.h > 0
+      ? {
+          width: `${(SLICE_WIDTH / naturalSize.w) * 100}%`,
+          height: `${(SLICE_HEIGHT / naturalSize.h) * 100}%`,
+        }
+      : null;
+
   return (
-    <div className="relative inline-block max-w-full max-h-full">
-      <div 
-        ref={containerRef}
-        className="relative cursor-crosshair shadow-lg rounded-md overflow-hidden bg-[url('https://png.pngtree.com/png-vector/20191018/ourmid/pngtree-transparent-background-pattern-png-image_1824213.jpg')] bg-repeat"
-        onClick={handleClick}
-      >
-        <img 
-          src={imageUrl} 
-          alt="Base Image" 
-          className="max-w-full max-h-[600px] object-contain block pointer-events-none" 
+    <div style={{ position: "relative", display: "inline-block" }}>
+      <div ref={containerRef} className="anchor-picker-wrap" onClick={handleClick}>
+        <img
+          src={imageUrl}
+          alt="Base"
+          draggable={false}
+          onLoad={(e) => {
+            const el = e.currentTarget;
+            setNaturalSize({ w: el.naturalWidth, h: el.naturalHeight });
+          }}
         />
-        
-        {/* Anchor Marker */}
+
+        {anchor && cropBoxSize && (
+          <div
+            className="anchor-crop-box"
+            style={{ left: `${anchor.x}%`, top: `${anchor.y}%`, ...cropBoxSize }}
+          />
+        )}
+
         {anchor && (
-          <div 
-            className="absolute pointer-events-none transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center"
-            style={{ left: `${anchor.x}%`, top: `${anchor.y}%` }}
-          >
-            <div className="w-8 h-8 rounded-full border-2 border-[#f23f42] bg-[rgba(242,63,66,0.2)] shadow-[0_0_10px_rgba(242,63,66,0.8)] relative flex items-center justify-center">
-              <div className="w-1 h-1 bg-[#f23f42] rounded-full"></div>
-              {/* Crosshairs */}
-              <div className="absolute w-12 h-[1px] bg-[#f23f42]"></div>
-              <div className="absolute w-[1px] h-12 bg-[#f23f42]"></div>
-            </div>
-            <div className="absolute top-5 left-5 bg-[rgba(0,0,0,0.7)] text-white text-[10px] px-1 py-0.5 rounded whitespace-nowrap">
+          <>
+            <div className="anchor-marker" style={{ left: `${anchor.x}%`, top: `${anchor.y}%` }} />
+            <span
+              className="anchor-marker-label"
+              style={{ left: `calc(${anchor.x}% + 20px)`, top: `calc(${anchor.y}% + 20px)` }}
+            >
               {anchor.x.toFixed(1)}%, {anchor.y.toFixed(1)}%
-            </div>
-          </div>
+            </span>
+          </>
         )}
       </div>
-      
-      {!anchor && (
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-[rgba(88,101,242,0.9)] text-white text-xs px-3 py-1.5 rounded-full shadow-lg pointer-events-none animate-pulse">
-          얼굴이 위치할 중심점을 클릭하세요
-        </div>
-      )}
+
+      {!anchor && <div className="anchor-hint">얼굴이 위치할 중심점을 클릭하세요</div>}
     </div>
   );
 }

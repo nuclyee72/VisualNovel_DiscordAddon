@@ -9,11 +9,24 @@ export interface AuthRequest extends Request {
   };
 }
 
+const DISCORD_SNOWFLAKE = /^\d{17,20}$/;
+
 export async function authMiddleware(
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ) {
+  // 봇(마스터) → 서버 내부 호출: BOT_SECRET + 대상 디스코드 유저 ID로 인증
+  const botSecret = req.headers['x-bot-secret'] as string | undefined;
+  if (botSecret && botSecret === process.env.BOT_SECRET) {
+    const discordId = req.headers['x-discord-user-id'] as string | undefined;
+    if (!discordId || !DISCORD_SNOWFLAKE.test(discordId)) {
+      return res.status(400).json({ error: 'x-discord-user-id 헤더가 유효하지 않습니다.' });
+    }
+    req.user = { discordId, userName: 'Bot' };
+    return next();
+  }
+
   const token = req.cookies?.vn_token as string | undefined;
 
   if (!token) {
@@ -32,15 +45,9 @@ export async function authMiddleware(
   }
 }
 
-// 길드 소속 검증 미들웨어
-export async function guildGuard(guildId: string) {
-  return async (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
-
-    const user = await User.findOne({ discordId: req.user.discordId });
-    if (!user || !user.guilds.includes(guildId)) {
-      return res.status(403).json({ error: '이 서버의 멤버만 접근할 수 있습니다.' });
-    }
-    return next();
-  };
+// 길드 소속 검증 헬퍼. 대상 리소스의 guildId는 라우트마다 DB 조회 후에야 알 수 있는
+// 경우가 많아(사전 항목, 세션 로그 등) 정적 미들웨어보다 라우트 내부에서 직접 호출한다.
+export async function isGuildMember(discordId: string, guildId: string): Promise<boolean> {
+  const user = await User.findOne({ discordId });
+  return !!user?.guilds.includes(guildId);
 }

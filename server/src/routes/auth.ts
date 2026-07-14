@@ -20,9 +20,10 @@ router.get('/login', (_req: Request, res: Response) => {
 
 // OAuth2 콜백
 router.get('/callback', async (req: Request, res: Response) => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
   const { code } = req.query as { code?: string };
   if (!code) {
-    return res.redirect('/login?error=no_code');
+    return res.redirect(`${frontendUrl}/login?error=no_code`);
   }
 
   try {
@@ -90,11 +91,13 @@ router.get('/callback', async (req: Request, res: Response) => {
     });
 
     // 프론트엔드 대시보드로 리다이렉트
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     res.redirect(`${frontendUrl}/dashboard`);
   } catch (err) {
-    console.error('[Auth] OAuth callback error:', err);
-    res.redirect('/login?error=oauth_failed');
+    // 주의: axios 에러 객체를 통째로 로깅하면 err.config 안에 client_secret이 포함된
+    // 요청 바디가 그대로 로그에 남는다. message/응답 바디만 남긴다.
+    const axiosErr = err as { message?: string; response?: { status?: number; data?: unknown } };
+    console.error('[Auth] OAuth callback error:', axiosErr.response?.status, axiosErr.response?.data ?? axiosErr.message ?? err);
+    res.redirect(`${frontendUrl}/login?error=oauth_failed`);
   }
 });
 

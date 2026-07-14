@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: '로그인 | TRPG Visual Novel',
-  description: '디스코드 계정으로 로그인하여 TRPG 비주얼 노벨 세션에 입장하세요.',
+  title: '로그인 | 비주얼 노벨',
+  description: '디스코드 계정으로 로그인하여 비주얼 노벨 세션에 입장하세요.',
 };
 
 export default function LoginPage() {
@@ -33,10 +33,10 @@ export default function LoginPage() {
           marginBottom: '8px',
           letterSpacing: '0.08em',
         }}>
-          VN TRPG
+          비주얼 노벨
         </h1>
         <p style={{ color: 'var(--color-text-secondary)', marginBottom: '40px', fontSize: '0.95rem' }}>
-          비주얼 노벨 TRPG 뷰어에 오신 것을 환영합니다
+          비주얼 노벨 뷰어에 오신 것을 환영합니다
         </p>
 
         {/* 로그인 카드 */}

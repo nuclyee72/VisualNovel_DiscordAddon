@@ -66,12 +66,19 @@
   transform-origin: bottom center;
 }
 
-/* 위치별 배치 */
-.vn-character[data-pos="0"] { left: 6%; }
-.vn-character[data-pos="1"] { left: 22%; }
-.vn-character[data-pos="2"] { left: 50%; transform: translateX(-50%); }
-.vn-character[data-pos="3"] { right: 22%; }
-.vn-character[data-pos="4"] { right: 6%; }
+/* 위치별 배치 — MAX_SESSION_PARTICIPANTS(10)에 맞춰 좌우 대칭 10슬롯으로 확장.
+   좌측 절반(0~4)은 left, 우측 절반(5~9)은 그 거울상으로 right를 사용해
+   폭이 넓은 스탠딩 이미지도 화면 밖으로 밀려나지 않게 한다. */
+.vn-character[data-pos="0"] { left: 2%; }
+.vn-character[data-pos="1"] { left: 10%; }
+.vn-character[data-pos="2"] { left: 18%; }
+.vn-character[data-pos="3"] { left: 26%; }
+.vn-character[data-pos="4"] { left: 34%; }
+.vn-character[data-pos="5"] { right: 34%; }
+.vn-character[data-pos="6"] { right: 26%; }
+.vn-character[data-pos="7"] { right: 18%; }
+.vn-character[data-pos="8"] { right: 10%; }
+.vn-character[data-pos="9"] { right: 2%; }
 
 /* 비발언자 — 반투명 대기 (Layer 1) */
 .vn-character.idle {
@@ -87,11 +94,6 @@
   z-index: 200;
   transform: translateY(-20px);
 }
-/* 센터 배치된 캐릭터의 발언 팝업 처리 */
-.vn-character.speaking[data-pos="2"] {
-  transform: translateX(-50%) translateY(-20px);
-}
-
 .vn-character-composite {
   position: relative;
   display: inline-block;
@@ -176,7 +178,7 @@
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
   z-index: -1;
-  
+
   /* 가장자리로 갈수록 옅어지는 마스크 효과 */
   -webkit-mask-image: linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%), linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
   -webkit-mask-composite: source-in;
@@ -222,6 +224,7 @@
   overflow-y: auto;
   text-align: left;
   padding-left: 2rem; /* <tab> 들여쓰기 효과 */
+  white-space: pre-line; /* 같은 화자의 연속 발화를 줄바꿈(\n)으로 이어붙였을 때 표시 */
 }
 .vn-dialogue-text::-webkit-scrollbar { width: 0px; background: transparent; } /* 스크롤바 숨기기 (디자인 깔끔하게) */
 
@@ -275,20 +278,58 @@
   );
   backdrop-filter: blur(24px);
   border-left: 1px solid var(--color-border);
-  padding: var(--space-lg);
+  /* 상단 padding을 늘려서, 화면 우상단에 항상 고정 표시되는 "나가기" 버튼과
+     세션 제목이 서로 겹치지 않도록 여유를 둔다. */
+  padding: 76px var(--space-lg) var(--space-lg);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
 }
 
+.vn-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--color-border);
+}
+
 .vn-sidebar-title {
   font-family: var(--font-title);
   font-size: 1rem;
   color: var(--color-accent-gold);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vn-sidebar-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.vn-sidebar-close-btn:hover {
+  background: rgba(255,255,255,0.08);
+  color: var(--color-text-primary);
+}
+
+.vn-sidebar-section-label {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
   letter-spacing: 0.1em;
-  padding-bottom: var(--space-sm);
-  border-bottom: 1px solid var(--color-border);
 }
 
 /* 플레이어 상태 카드 */
@@ -303,8 +344,8 @@
   transition: border-color 0.3s;
 }
 .vn-player-card.speaking-card {
-  border-color: var(--color-accent-primary);
-  box-shadow: 0 0 10px var(--color-accent-glow);
+  border-color: var(--color-accent-gold);
+  box-shadow: 0 0 12px var(--color-accent-gold-glow);
 }
 .vn-player-card-header {
   display: flex;
@@ -319,8 +360,8 @@
   border: 2px solid var(--color-border);
 }
 .vn-player-card.speaking-card .vn-player-avatar {
-  border-color: var(--color-accent-primary);
-  box-shadow: 0 0 8px var(--color-accent-glow);
+  border-color: var(--color-accent-gold);
+  box-shadow: 0 0 8px var(--color-accent-gold-glow);
 }
 .vn-player-name {
   font-size: 0.85rem;
@@ -336,8 +377,149 @@
   color: var(--color-accent-gold);
   border: 1px solid rgba(201, 168, 76, 0.3);
 }
+.vn-speaking-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent-gold);
+  flex-shrink: 0;
+  animation: speakingPulse 1.5s ease-in-out infinite;
+}
+@keyframes speakingPulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--color-accent-gold-glow); }
+  50% { box-shadow: 0 0 0 6px rgba(201, 168, 76, 0); }
+}
+.vn-player-no-stats {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+  padding: 2px 0 2px;
+}
 
-/* (보류) 주사위 컴포넌트 관련 CSS 삭제됨 */
+/* 로그 다운로드 버튼 */
+.vn-log-download-btn {
+  flex: 1;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  padding: 8px;
+}
+
+/* ── 주사위 오버레이 ─────────────────────────── */
+.vn-dice-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-dice);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
+  animation: diceOverlayIn 200ms ease;
+}
+@keyframes diceOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.vn-dice-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.vn-dice-3d {
+  width: 90px;
+  height: 90px;
+  perspective: 600px;
+}
+.vn-dice-cube {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+.vn-dice-3d.rolling .vn-dice-cube {
+  animation: diceRoll 0.7s linear infinite;
+}
+@keyframes diceRoll {
+  0% { transform: rotateX(0) rotateY(0); }
+  100% { transform: rotateX(360deg) rotateY(360deg); }
+}
+
+.vn-dice-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  font-weight: 700;
+  font-family: var(--font-title);
+  background: var(--color-bg-card);
+  border: 2px solid var(--color-border-bright);
+  border-radius: 12px;
+  color: var(--color-text-primary);
+  box-shadow: 0 0 20px rgba(0,0,0,0.4);
+  backface-visibility: hidden;
+}
+.vn-dice-face:nth-child(1) { transform: translateZ(45px); }
+.vn-dice-face:nth-child(2) { transform: rotateY(180deg) translateZ(45px); }
+.vn-dice-face:nth-child(3) { transform: rotateY(90deg) translateZ(45px); }
+.vn-dice-face:nth-child(4) { transform: rotateY(-90deg) translateZ(45px); }
+.vn-dice-face:nth-child(5) { transform: rotateX(90deg) translateZ(45px); }
+.vn-dice-face:nth-child(6) { transform: rotateX(-90deg) translateZ(45px); }
+
+/* 결과 표시 시 실제로 나온 눈이 정면을 보도록 큐브를 고정 회전시킨다 */
+.vn-dice-3d.show-face-1 .vn-dice-cube { transform: rotateX(0) rotateY(0); }
+.vn-dice-3d.show-face-2 .vn-dice-cube { transform: rotateY(-180deg); }
+.vn-dice-3d.show-face-3 .vn-dice-cube { transform: rotateY(-90deg); }
+.vn-dice-3d.show-face-4 .vn-dice-cube { transform: rotateY(90deg); }
+.vn-dice-3d.show-face-5 .vn-dice-cube { transform: rotateX(-90deg); }
+.vn-dice-3d.show-face-6 .vn-dice-cube { transform: rotateX(90deg); }
+
+.vn-dice-face.is-result-face {
+  border-color: var(--color-accent-gold);
+  box-shadow: 0 0 25px var(--color-accent-gold-glow);
+}
+
+.vn-dice-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--color-border-bright);
+  border-radius: 16px;
+  padding: var(--space-lg) var(--space-xl);
+  animation: diceResultIn 250ms ease;
+}
+@keyframes diceResultIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.vn-dice-result-user {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+.vn-dice-result-formula {
+  font-family: var(--font-title);
+  font-size: 1rem;
+  color: var(--color-accent-gold);
+  letter-spacing: 0.05em;
+}
+.vn-dice-result-total {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  text-shadow: 0 0 20px var(--color-accent-gold-glow);
+}
+.vn-dice-result-detail {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
 
 /* ── 뷰어 컨트롤 바 ─────────────────────────────── */
 .vn-controls {

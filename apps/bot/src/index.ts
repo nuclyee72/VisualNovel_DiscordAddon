@@ -1,10 +1,13 @@
 import { Client, Collection, GatewayIntentBits, Partials } from 'discord.js';
-import { io as socketIO, Socket } from 'socket.io-client';
 import dotenv from 'dotenv';
 import path from 'path';
 
 // 환경변수 로드
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+
+process.on('unhandledRejection', (err) => {
+  console.error('[Bot][UnhandledRejection]', err);
+});
 
 // 슬래시 커맨드 타입
 import type { SlashCommandType } from './types';
@@ -55,31 +58,6 @@ const commands: SlashCommandType[] = [
   dictionaryCmd,
 ];
 commands.forEach((cmd) => client.commands.set(cmd.data.name, cmd));
-
-// ── Socket.IO 연결 (봇 → 백엔드 서버) ────────────────────────
-export const socket: Socket = socketIO(
-  process.env.BACKEND_URL || 'http://localhost:4000',
-  {
-    auth: { botSecret: process.env.BOT_SECRET },
-    reconnection: true,
-    reconnectionDelay: 3000,
-  }
-);
-
-socket.on('connect', () => {
-  console.log(`[Bot Socket] Connected to backend: ${socket.id}`);
-});
-
-socket.on('disconnect', (reason) => {
-  console.warn(`[Bot Socket] Disconnected: ${reason}`);
-});
-
-socket.on('connect_error', (err) => {
-  console.error(`[Bot Socket] Connection error: ${err.message}`);
-});
-
-// ── 세션 추적 Map (guildId → sessionId) ──────────────────────
-export const activeSessions = new Map<string, string>();
 
 // ── Discord 이벤트 ────────────────────────────────────────────
 client.once('ready', handleReady);

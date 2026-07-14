@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
-import { socket, activeSessions } from '../index';
-import { SOCKET_EVENTS } from '../../../packages/shared/src/index';
+import { socket, activeSessions } from '../state';
+import { SOCKET_EVENTS } from '../../../../packages/shared/src/index';
 import axios from 'axios';
 import type { SlashCommandType } from '../types';
 
@@ -19,18 +19,22 @@ export default {
     }
 
     try {
+      const backendUrl = process.env.BACKEND_URL || 'http://localhost:4000';
+      // 세션 종료 API 호출 (마스터 권한 검증은 서버에서 수행됨)
+      await axios.delete(`${backendUrl}/api/sessions/${sessionId}`, {
+        headers: {
+          'x-bot-secret': process.env.BOT_SECRET,
+          'x-discord-user-id': interaction.user.id,
+        },
+      });
+
+      // DELETE가 성공한 이후에만 브로드캐스트 및 로컬 상태 커밋
       // 종료 시스템 메시지
       socket.emit(SOCKET_EVENTS.MASTER_SYSTEM, {
         sessionId,
         text: '📜 마스터가 세션을 종료했습니다. 수고하셨습니다!',
         level: 'info',
         timestamp: Date.now(),
-      });
-
-      const backendUrl = process.env.BACKEND_URL || 'http://localhost:4000';
-      // 세션 종료 API 호출
-      await axios.delete(`${backendUrl}/api/sessions/${sessionId}`, {
-        headers: { 'x-bot-secret': process.env.BOT_SECRET },
       });
 
       // 길드 → 세션 매핑 제거

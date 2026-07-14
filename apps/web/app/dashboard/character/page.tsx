@@ -1,41 +1,82 @@
 "use client";
 
-import { useState } from "react";
-import { Topbar } from "@/components/layout/Topbar";
-import { CharacterEditor } from "@/components/character/CharacterEditor";
+import { useCallback, useEffect, useState } from "react";
+import { CharacterEditor, CharacterDTO } from "@/components/character/CharacterEditor";
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000";
 
 export default function CharacterPage() {
-  const [selectedChar, setSelectedChar] = useState<string>("new");
+  const [characters, setCharacters] = useState<CharacterDTO[]>([]);
+  const [selectedId, setSelectedId] = useState<string | "new">("new");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchCharacters = useCallback(async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/characters`, { credentials: "include" });
+      if (!res.ok) throw new Error("캐릭터 목록을 불러오지 못했습니다.");
+      const data: CharacterDTO[] = await res.json();
+      setCharacters(data);
+      return data;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "캐릭터 목록을 불러오지 못했습니다.");
+      return [];
+    }
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const data = await fetchCharacters();
+      if (data.length > 0) setSelectedId(data[0]._id);
+      setLoading(false);
+    })();
+  }, [fetchCharacters]);
+
+  const handleSaved = async (characterId: string) => {
+    await fetchCharacters();
+    setSelectedId(characterId);
+  };
+
+  const selectedCharacter = selectedId === "new" ? null : characters.find((c) => c._id === selectedId) ?? null;
 
   return (
-    <div className="flex h-[calc(100vh-64px)] w-full overflow-hidden text-white">
-      {/* Sidebar */}
-      <aside className="w-64 border-r border-[#1e1f22] bg-[#2b2d31] p-4 flex flex-col gap-4">
-        <h2 className="text-xs font-bold text-[#b5bac1] tracking-wider mb-2">내 캐릭터 목록</h2>
-        
-        <div 
-          className={`p-3 rounded-md cursor-pointer transition-colors ${selectedChar === 'char1' ? 'bg-[#404249] text-white' : 'hover:bg-[#313338] text-[#b5bac1]'}`}
-          onClick={() => setSelectedChar('char1')}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#1e1f22] flex items-center justify-center overflow-hidden">
-              <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Ariel&backgroundColor=b6e3f4" alt="avatar" />
-            </div>
-            <span className="font-medium text-sm">아리엘</span>
-          </div>
-        </div>
+    <div className="side-tab-layout">
+      <aside className="side-tab-sidebar">
+        <h3>내 캐릭터 목록</h3>
 
-        <button 
-          className={`p-3 rounded-md border border-dashed border-[#4f545c] text-[#949ba4] text-sm hover:bg-[#313338] hover:text-white transition-colors ${selectedChar === 'new' ? 'bg-[#313338] border-solid border-[#5865f2] text-white' : ''}`}
-          onClick={() => setSelectedChar('new')}
+        {loading && <div style={{ color: "var(--color-text-muted)", fontSize: "0.85rem" }}>불러오는 중...</div>}
+        {error && <div style={{ color: "var(--color-danger)", fontSize: "0.8rem" }}>{error}</div>}
+
+        {characters.map((c) => {
+          const thumb = c.images.find((img) => img.tag === "#Neutral")?.url ?? c.images[0]?.url;
+          return (
+            <div
+              key={c._id}
+              className={`side-tab-item ${selectedId === c._id ? "active" : ""}`}
+              onClick={() => setSelectedId(c._id)}
+            >
+              {thumb ? (
+                <img src={thumb} className="side-tab-item-img" alt={c.name} />
+              ) : (
+                <div className="side-tab-item-img" />
+              )}
+              <span style={{ fontWeight: 500 }}>{c.name}</span>
+            </div>
+          );
+        })}
+
+        <div
+          className={`side-tab-item-new ${selectedId === "new" ? "active" : ""}`}
+          onClick={() => setSelectedId("new")}
         >
-          + 새 캐릭터 만들기
-        </button>
+          <span className="material-icons" style={{ fontSize: "1rem", verticalAlign: "middle", marginRight: 4 }}>add</span>
+          새 캐릭터 만들기
+        </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-[#313338] p-8">
-        <CharacterEditor characterId={selectedChar} />
+      <main className="side-tab-content" style={{ padding: 32, overflowY: "auto" }}>
+        <CharacterEditor key={selectedId} character={selectedCharacter} onSaved={handleSaved} />
       </main>
     </div>
   );

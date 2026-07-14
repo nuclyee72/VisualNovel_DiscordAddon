@@ -37,16 +37,23 @@ export default function DiceOverlay({ payload, onClose }: DiceOverlayProps) {
 
   if (phase === 'hidden' || !payload) return null;
 
-  const diceNumber = payload.total % 6 + 1; // 면에 표시할 숫자
+  // 실제 굴림 결과(rolls[0], 없으면 total)를 1~6 범위로 접어 굴리는 동안/결과 표시
+  // 애니메이션에서 어떤 주사위 눈을 보여줄지 결정한다. 이전에는 계산만 하고
+  // 실제 표시에는 전혀 반영되지 않던 죽은 변수였다.
+  const rolledValue = payload.rolls[0] ?? payload.total;
+  const diceNumber = ((Math.abs(rolledValue) - 1) % 6) + 1; // 면에 표시할 숫자 (1~6)
 
   return (
     <div className="vn-dice-overlay" onClick={onClose} role="dialog" aria-label="주사위 결과">
       <div className="vn-dice-container" onClick={(e) => e.stopPropagation()}>
         {/* 3D 주사위 */}
-        <div className="vn-dice-3d">
+        <div className={`vn-dice-3d ${phase === 'result' ? `show-face-${diceNumber}` : 'rolling'}`}>
           <div className="vn-dice-cube">
             {[1, 2, 3, 4, 5, 6].map((face) => (
-              <div key={face} className="vn-dice-face">
+              <div
+                key={face}
+                className={`vn-dice-face ${phase === 'result' && face === diceNumber ? 'is-result-face' : ''}`}
+              >
                 {face}
               </div>
             ))}
