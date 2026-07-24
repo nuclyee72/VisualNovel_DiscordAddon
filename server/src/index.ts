@@ -42,6 +42,7 @@ import characterRoutes from './routes/characters';
 import dictionaryRoutes from './routes/dictionary';
 import uploadRoutes from './routes/upload';
 import logRoutes from './routes/logs';
+import settingsRoutes from './routes/settings';
 
 const app = express();
 const httpServer = createServer(app);
@@ -61,6 +62,7 @@ app.use('/api/characters', characterRoutes);
 app.use('/api/dictionary', dictionaryRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/logs', logRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Health check
 app.get('/health', (_req, res) => {

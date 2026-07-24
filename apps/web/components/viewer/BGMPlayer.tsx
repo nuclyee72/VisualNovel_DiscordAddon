@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import type { BGMPayload } from '../../../../packages/shared/src/index';
+import type { BGMPayload } from '@vn-trpg/shared';
 
 interface BGMPlayerProps {
   bgmPayload: BGMPayload | null;

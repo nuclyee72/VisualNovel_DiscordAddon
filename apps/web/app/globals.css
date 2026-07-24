@@ -575,6 +575,30 @@ input:focus, textarea:focus, select:focus {
   width: 32px; height: 32px; border-radius: 50%;
   object-fit: cover; background: #000; flex-shrink: 0;
 }
+.char-active-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-success);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.char-select-btn {
+  font-size: 0.72rem;
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border-bright);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.char-select-btn:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-accent-primary);
+  background: rgba(255,255,255,0.06);
+}
 .side-tab-item-new {
   padding: var(--space-sm) var(--space-md);
   border-radius: 8px;
@@ -625,6 +649,130 @@ input:focus, textarea:focus, select:focus {
 }
 .tab-panel-placeholder-inner { text-align: center; opacity: 0.5; }
 .tab-panel-placeholder-inner .icon { font-size: 3rem; margin-bottom: var(--space-md); }
+
+/* ══════════════════════════════════════════════════
+   설정 화면 (뷰어 설정 / 이모지 매핑)
+══════════════════════════════════════════════════ */
+.settings-section {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: var(--space-lg);
+  max-width: 640px;
+}
+.settings-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+}
+.settings-desc {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-md);
+  line-height: 1.6;
+}
+.settings-desc code {
+  background: rgba(255,255,255,0.08);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.85em;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+.settings-label {
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+.settings-save-status {
+  min-height: 1.2em;
+  font-size: 0.8rem;
+}
+.settings-save-status-saving { color: var(--color-text-muted); }
+.settings-save-status-saved { color: var(--color-success); }
+.settings-save-status-error { color: var(--color-danger); }
+
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-bright);
+  flex-shrink: 0;
+  transition: background var(--transition-fast);
+}
+.toggle-switch.on {
+  background: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+}
+.toggle-switch:disabled { opacity: 0.5; cursor: not-allowed; }
+.toggle-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  transition: transform var(--transition-fast);
+}
+.toggle-switch.on .toggle-switch-knob { transform: translateX(20px); }
+
+.speed-option-group {
+  display: flex;
+  gap: var(--space-xs);
+}
+.speed-option {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border-bright);
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.speed-option:hover { color: var(--color-text-primary); background: rgba(255,255,255,0.06); }
+.speed-option.active {
+  background: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+  color: white;
+}
+
+.emotion-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-md);
+}
+.emotion-tag-chip {
+  font-size: 0.78rem;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  color: var(--color-text-secondary);
+}
+
+.emoji-map-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-sm);
+}
+.emoji-map-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  font-size: 0.85rem;
+}
+.emoji-map-emoji { font-size: 1.1rem; }
+.emoji-map-arrow { font-size: 0.9rem !important; color: var(--color-text-muted); }
+.emoji-map-tag { color: var(--color-text-secondary); }
 
 /* ══════════════════════════════════════════════════
    캐릭터 편집 — 앵커 피커 / 표정 그리드 / 업로드존

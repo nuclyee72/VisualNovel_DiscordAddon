@@ -12,15 +12,36 @@ router.use(authMiddleware);
 
 // 세션 생성 (마스터용)
 router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { name, guildId } = req.body as { name?: string; guildId?: string };
+  const { name, guildId, masterUserName, masterAvatarUrl } = req.body as {
+    name?: string;
+    guildId?: string;
+    masterUserName?: string;
+    masterAvatarUrl?: string;
+  };
   if (!name || typeof name !== 'string' || !guildId || typeof guildId !== 'string') {
     return res.status(400).json({ error: 'name과 guildId가 필요합니다.' });
   }
 
-  // 길드 소속 검증
-  const user = await User.findOne({ discordId: req.user!.discordId });
-  if (!user || !user.guilds.includes(guildId)) {
-    return res.status(403).json({ error: '해당 서버의 멤버만 세션을 생성할 수 있습니다.' });
+  let user = await User.findOne({ discordId: req.user!.discordId });
+
+  if (!user) {
+    // 봇 명령어를 통한 생성은 이미 그 길드 안에서 실행된 인터랙션이 길드 소속의 증거이므로,
+    // 웹 로그인 이력이 없어도(User 문서가 아직 없어도) 새로 만들어 진행을 허용한다.
+    if (!req.isBotConnection) {
+      return res.status(403).json({ error: '해당 서버의 멤버만 세션을 생성할 수 있습니다.' });
+    }
+    user = await User.create({
+      discordId: req.user!.discordId,
+      username: masterUserName || req.user!.userName,
+      avatar: masterAvatarUrl,
+      guilds: [guildId],
+    });
+  } else if (!user.guilds.includes(guildId)) {
+    if (!req.isBotConnection) {
+      return res.status(403).json({ error: '해당 서버의 멤버만 세션을 생성할 수 있습니다.' });
+    }
+    user.guilds.push(guildId);
+    await user.save();
   }
 
   const sessionId = uuidv4();
@@ -33,7 +54,7 @@ router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
     participants: [
       {
         discordId: req.user!.discordId,
-        userName: req.user!.userName,
+        userName: user.username,
         avatarUrl: user.avatar || '',
         role: 'master',
         joinedAt: new Date(),
@@ -49,7 +70,7 @@ router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
     guildId,
     masterId: req.user!.discordId,
     startedAt: new Date(),
-    participants: [req.user!.userName],
+    participants: [user.username],
     entries: [],
   });
 
@@ -196,6 +217,24 @@ router.delete('/:sessionId', asyncHandler(async (req: AuthRequest, res: Response
     { sessionId: req.params.sessionId },
     { endedAt: new Date() }
   );
+
+  return res.json({ success: true });
+}));
+
+// 세션 완전 삭제 (되돌릴 수 없음 — 대화 로그까지 함께 지워진다).
+// 이미 종료된 세션만 삭제 가능 (진행 중인 세션은 먼저 닫아야 함), 마스터만 가능.
+router.delete('/:sessionId/permanent', asyncHandler(async (req: AuthRequest, res: Response) => {
+  const session = await Session.findOne({ sessionId: req.params.sessionId });
+  if (!session) return res.status(404).json({ error: '세션을 찾을 수 없습니다.' });
+  if (session.masterId !== req.user!.discordId) {
+    return res.status(403).json({ error: '마스터만 세션을 삭제할 수 있습니다.' });
+  }
+  if (session.status !== 'ended') {
+    return res.status(400).json({ error: '종료된 세션만 삭제할 수 있습니다. 먼저 세션을 닫아주세요.' });
+  }
+
+  await Session.deleteOne({ sessionId: req.params.sessionId });
+  await SessionLog.deleteOne({ sessionId: req.params.sessionId });
 
   return res.json({ success: true });
 }));

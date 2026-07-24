@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 import { socket, activeSessions } from '../state';
-import { SOCKET_EVENTS } from '../../../../packages/shared/src/index';
+import { SOCKET_EVENTS } from '@vn-trpg/shared';
 import type { SlashCommandType } from '../types';
 
 export default {

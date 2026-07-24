@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 import { socket, activeSessions } from '../state';
-import { SOCKET_EVENTS } from '../../../../packages/shared/src/index';
+import { SOCKET_EVENTS } from '@vn-trpg/shared';
 import axios from 'axios';
 import type { SlashCommandType } from '../types';
 
@@ -40,7 +40,7 @@ export default {
       // 길드 → 세션 매핑 제거
       activeSessions.delete(guildId);
 
-      const logUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/sessions`;
+      const logUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard`;
       await interaction.reply(
         `✅ **세션 종료 완료!**\n로그는 대시보드에서 다운로드할 수 있습니다.\n${logUrl}`
       );

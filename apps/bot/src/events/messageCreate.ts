@@ -1,6 +1,6 @@
 import { Message } from 'discord.js';
 import { socket, activeSessions } from '../state';
-import { SOCKET_EVENTS, EMOJI_EXPRESSION_MAP } from '../../../../packages/shared/src/index';
+import { SOCKET_EVENTS, EMOJI_EXPRESSION_MAP } from '@vn-trpg/shared';
 
 // 대사 릴레이 길이 제한 (너무 긴 텍스트가 VN 화면을 깨뜨리는 것을 방지)
 const MAX_DIALOGUE_LENGTH = 1000;

@@ -10,6 +10,10 @@ export default function CharacterPage() {
   const [selectedId, setSelectedId] = useState<string | "new">("new");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // 세션 참가 시 실제로 사용될 "활성" 캐릭터 — 편집을 위해 목록에서 클릭해
+  // 열어보는 selectedId와는 별개의 개념이다.
+  const [activeCharacterId, setActiveCharacterId] = useState<string | null>(null);
+  const [selectingId, setSelectingId] = useState<string | null>(null);
 
   const fetchCharacters = useCallback(async () => {
     try {
@@ -24,6 +28,17 @@ export default function CharacterPage() {
     }
   }, []);
 
+  const fetchActiveCharacter = useCallback(async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/auth/me`, { credentials: "include" });
+      if (!res.ok) return;
+      const data = await res.json();
+      setActiveCharacterId(data.activeCharacterId ?? null);
+    } catch {
+      // 실패해도 "사용 중" 배지만 안 보일 뿐 나머지 기능에는 영향 없음
+    }
+  }, []);
+
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -31,11 +46,29 @@ export default function CharacterPage() {
       if (data.length > 0) setSelectedId(data[0]._id);
       setLoading(false);
     })();
-  }, [fetchCharacters]);
+    fetchActiveCharacter();
+  }, [fetchCharacters, fetchActiveCharacter]);
 
   const handleSaved = async (characterId: string) => {
     await fetchCharacters();
     setSelectedId(characterId);
+  };
+
+  const handleSelectActive = async (e: React.MouseEvent, characterId: string) => {
+    e.stopPropagation(); // 편집용 목록 클릭(setSelectedId)과 분리
+    setSelectingId(characterId);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/characters/${characterId}/select`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("캐릭터 선택에 실패했습니다.");
+      setActiveCharacterId(characterId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "캐릭터 선택에 실패했습니다.");
+    } finally {
+      setSelectingId(null);
+    }
   };
 
   const selectedCharacter = selectedId === "new" ? null : characters.find((c) => c._id === selectedId) ?? null;
@@ -50,6 +83,7 @@ export default function CharacterPage() {
 
         {characters.map((c) => {
           const thumb = c.images.find((img) => img.tag === "#Neutral")?.url ?? c.images[0]?.url;
+          const isActiveCharacter = activeCharacterId === c._id;
           return (
             <div
               key={c._id}
@@ -61,7 +95,23 @@ export default function CharacterPage() {
               ) : (
                 <div className="side-tab-item-img" />
               )}
-              <span style={{ fontWeight: 500 }}>{c.name}</span>
+              <span style={{ fontWeight: 500, flex: 1 }}>{c.name}</span>
+              {isActiveCharacter ? (
+                <span className="char-active-badge" title="세션에서 사용 중인 캐릭터입니다">
+                  <span className="material-icons" style={{ fontSize: "0.95rem" }}>check_circle</span>
+                  사용 중
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-ghost char-select-btn"
+                  disabled={selectingId === c._id}
+                  onClick={(e) => handleSelectActive(e, c._id)}
+                  title="세션에서 이 캐릭터를 사용하도록 선택"
+                >
+                  {selectingId === c._id ? "선택 중..." : "선택"}
+                </button>
+              )}
             </div>
           );
         })}

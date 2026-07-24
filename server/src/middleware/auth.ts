@@ -7,6 +7,9 @@ export interface AuthRequest extends Request {
     discordId: string;
     userName: string;
   };
+  // 디스코드 봇이 x-bot-secret으로 인증한 요청인지 여부. 봇 명령어는 이미 디스코드
+  // 길드 안에서 실행된 인터랙션이므로, 별도의 길드 소속 확인 없이도 신뢰할 수 있다.
+  isBotConnection?: boolean;
 }
 
 const DISCORD_SNOWFLAKE = /^\d{17,20}$/;
@@ -24,6 +27,7 @@ export async function authMiddleware(
       return res.status(400).json({ error: 'x-discord-user-id 헤더가 유효하지 않습니다.' });
     }
     req.user = { discordId, userName: 'Bot' };
+    req.isBotConnection = true;
     return next();
   }
 

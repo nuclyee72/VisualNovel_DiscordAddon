@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import type { DicePayload } from '../../../../packages/shared/src/index';
+import type { DicePayload } from '@vn-trpg/shared';
 
 interface DiceOverlayProps {
   payload: DicePayload | null;

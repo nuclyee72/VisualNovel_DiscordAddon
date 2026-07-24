@@ -1,11 +1,12 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { Server as HTTPServer } from 'http';
 import jwt from 'jsonwebtoken';
-import { SOCKET_EVENTS } from '../../packages/shared/src/index';
+import { SOCKET_EVENTS, hasExplicitExpressionTag, classifyEmotion } from '@vn-trpg/shared';
 import { Session } from './models/Session';
 import { SessionLog } from './models/SessionLog';
 import { Character } from './models/Character';
-import { User } from './models/User';
+import { User, IUser } from './models/User';
+import { isGuildMember } from './middleware/auth';
 
 interface AuthenticatedSocket extends Socket {
   discordId?: string;
@@ -110,12 +111,36 @@ export function initSocketIO(httpServer: HTTPServer): SocketIOServer {
         return;
       }
 
-      // 실제 세션 참가자인지 확인 (sessionId만 알면 아무나 들어와 엿듣는 것을 방지)
+      // 세션이 속한 디스코드 서버(길드)의 멤버인지 확인 (sessionId만 알면 아무나 들어와
+      // 엿듣는 것을 방지) — 별도의 "참가" 절차 없이, 길드 멤버라면 링크만으로 바로 입장할 수 있다.
+      let user: IUser | null = null;
       if (!socket.isBotConnection) {
-        const isParticipant = session.participants.some((p) => p.discordId === socket.discordId);
-        if (!isParticipant) {
-          socket.emit('error', { message: '이 세션의 참가자가 아닙니다. 먼저 세션에 참가해주세요.' });
+        user = await User.findOne({ discordId: socket.discordId });
+        if (!user || !user.guilds.includes(session.guildId)) {
+          socket.emit('error', { message: '이 서버의 멤버만 세션에 참가할 수 있습니다.' });
           return;
+        }
+
+        // 처음 접속하는 참가자라면 그 자리에서 자동으로 참가 처리한다 (지연 참가).
+        const alreadyParticipant = session.participants.some((p) => p.discordId === socket.discordId);
+        if (!alreadyParticipant) {
+          session.participants.push({
+            discordId: socket.discordId!,
+            userName: socket.userName!,
+            avatarUrl: user.avatar || '',
+            role: 'player',
+            joinedAt: new Date(),
+          });
+          try {
+            await session.save();
+          } catch (err) {
+            // 동시 접속 경합으로 인한 저장 실패는 무시 — 다음 재연결 시 다시 시도된다.
+            console.error('[Socket] Failed to save lazy-join participant:', err);
+          }
+          await SessionLog.updateOne(
+            { sessionId },
+            { $addToSet: { participants: socket.userName } }
+          );
         }
       }
 
@@ -125,12 +150,17 @@ export function initSocketIO(httpServer: HTTPServer): SocketIOServer {
 
       // 입장 알림 브로드캐스트 (봇 연결 제외)
       if (!socket.isBotConnection) {
-        // 유저의 아바타 정보
-        const user = await User.findOne({ discordId: socket.discordId });
         const avatarUrl = user?.avatar || '';
 
-        // 캐릭터 이미지 데이터 로드
-        const character = await Character.findOne({ ownerId: socket.discordId }).lean();
+        // 캐릭터 이미지 데이터 로드 — 캐릭터 목록에서 명시적으로 "선택"한 캐릭터가
+        // 있으면 그걸 쓰고, 없거나(한 번도 선택 안 함) 선택된 캐릭터가 이미
+        // 삭제된 경우에는 예전처럼 첫 번째 캐릭터로 대체한다.
+        let character = user?.activeCharacterId
+          ? await Character.findOne({ _id: user.activeCharacterId, ownerId: socket.discordId }).lean()
+          : null;
+        if (!character) {
+          character = await Character.findOne({ ownerId: socket.discordId }).lean();
+        }
 
         // 참여자 입장 이벤트 브로드캐스트
         io.to(roomName).emit(SOCKET_EVENTS.VN_PARTICIPANT_JOIN, {
@@ -238,6 +268,28 @@ export function initSocketIO(httpServer: HTTPServer): SocketIOServer {
         speakerId: payload.speakerDiscordId,
         content: payload.text,
       });
+
+      // ── 표정 자동 감지 ──────────────────────────────────
+      // 이모지/수동 명령어로 이미 표정이 지정된 대사는 그 지정이 우선하므로 건너뛴다.
+      if (typeof payload.text === 'string' && !hasExplicitExpressionTag(payload.text)) {
+        const speaker = await User.findOne({ discordId: payload.speakerDiscordId })
+          .select('expressionAutoDetect')
+          .lean();
+        if (speaker?.expressionAutoDetect) {
+          const tag = classifyEmotion(payload.text);
+          io.to(roomName).emit(SOCKET_EVENTS.VN_EXPRESSION, {
+            sessionId: payload.sessionId,
+            discordId: payload.speakerDiscordId,
+            tag,
+          });
+          await appendLog(payload.sessionId, {
+            timestamp: Date.now(),
+            type: 'expression',
+            speakerId: payload.speakerDiscordId,
+            content: `표정 자동 감지: ${tag}`,
+          });
+        }
+      }
     }));
 
     socket.on(SOCKET_EVENTS.MASTER_EXPRESSION, safe(async (payload: any) => {

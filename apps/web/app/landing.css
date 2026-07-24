@@ -84,28 +84,15 @@
 /* ── 히어로 ─────────────────────────────────────── */
 .landing-hero {
   text-align: center;
-  padding: 100px 20px 80px;
-  max-width: 800px;
+  padding: 140px 20px;
+  max-width: 1000px;
   margin: 0 auto;
-}
-.landing-hero-badge {
-  display: inline-block;
-  padding: 6px 16px;
-  border-radius: 20px;
-  background: rgba(124, 106, 247, 0.12);
-  border: 1px solid rgba(124, 106, 247, 0.3);
-  color: var(--color-accent-primary);
-  font-size: 0.85rem;
-  font-weight: 500;
-  margin-bottom: var(--space-lg);
-  letter-spacing: 0.05em;
 }
 .landing-hero-title {
   font-family: var(--font-title);
-  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-size: clamp(1.8rem, 4.2vw, 3.2rem);
   font-weight: 600;
   line-height: 1.2;
-  margin-bottom: var(--space-lg);
   letter-spacing: 0.02em;
 }
 .landing-hero-highlight {
@@ -113,125 +100,6 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-}
-.landing-hero-desc {
-  font-size: 1.1rem;
-  color: var(--color-text-secondary);
-  line-height: 1.7;
-  margin-bottom: var(--space-xl);
-}
-.landing-hero-cta {
-  display: flex;
-  gap: var(--space-md);
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-bottom: var(--space-xl);
-}
-
-.landing-stats {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-lg);
-  font-size: 0.9rem;
-  color: var(--color-text-muted);
-  flex-wrap: wrap;
-}
-.landing-stat span { color: var(--color-accent-primary); font-weight: 600; }
-.landing-stat-divider {
-  width: 1px;
-  height: 16px;
-  background: var(--color-border);
-}
-
-/* ── 기능 섹션 ─────────────────────────────────── */
-.landing-features {
-  padding: 80px 60px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-.landing-section-title {
-  font-family: var(--font-title);
-  font-size: 2rem;
-  text-align: center;
-  margin-bottom: var(--space-xl);
-  letter-spacing: 0.05em;
-  color: var(--color-text-primary);
-}
-.landing-features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: var(--space-lg);
-}
-.landing-feature-card {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-.landing-feature-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.4);
-}
-.landing-feature-icon { font-size: 2.5rem; margin-bottom: var(--space-md); }
-.landing-feature-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: var(--space-sm);
-  color: var(--color-text-primary);
-}
-.landing-feature-desc {
-  font-size: 0.9rem;
-  color: var(--color-text-secondary);
-  line-height: 1.6;
-}
-
-/* ── 사용법 ─────────────────────────────────────── */
-.landing-how {
-  padding: 80px 60px;
-  max-width: 800px;
-  margin: 0 auto;
-}
-.landing-steps {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-}
-.landing-step {
-  display: flex;
-  gap: var(--space-lg);
-  align-items: flex-start;
-}
-.landing-step-num {
-  font-family: var(--font-title);
-  font-size: 2rem;
-  font-weight: 600;
-  color: var(--color-accent-primary);
-  opacity: 0.5;
-  flex-shrink: 0;
-  width: 60px;
-}
-.landing-step-content h3 {
-  font-size: 1.05rem;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-.landing-step-content p {
-  font-size: 0.9rem;
-  color: var(--color-text-secondary);
-}
-
-/* ── CTA 섹션 ─────────────────────────────────── */
-.landing-cta-section {
-  text-align: center;
-  padding: 100px 20px;
-  background: linear-gradient(180deg, transparent, rgba(124, 106, 247, 0.05));
-}
-.landing-cta-section h2 {
-  font-family: var(--font-title);
-  font-size: 2rem;
-  margin-bottom: var(--space-sm);
-}
-.landing-cta-section p {
-  color: var(--color-text-secondary);
-  margin-bottom: var(--space-xl);
 }
 
 /* ── 푸터 ─────────────────────────────────────── */
@@ -245,8 +113,5 @@
 
 @media (max-width: 768px) {
   .landing-header { padding: 16px 20px; }
-  .landing-features { padding: 60px 20px; }
-  .landing-how { padding: 60px 20px; }
-  .landing-features-grid { grid-template-columns: 1fr; }
-  .landing-hero { padding: 60px 20px; }
+  .landing-hero { padding: 80px 20px; }
 }

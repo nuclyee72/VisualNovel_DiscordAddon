@@ -4,11 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3010",
-    "build": "next build",
+    "build": "cd ../.. && npm run build --workspace=packages/shared && cd apps/web && next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
+    "@vn-trpg/shared": "*",
     "next": "14.2.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

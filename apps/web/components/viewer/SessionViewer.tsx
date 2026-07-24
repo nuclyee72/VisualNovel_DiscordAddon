@@ -25,7 +25,7 @@ import {
   type SpeakerPayload,
   type ExpressionPayload,
   type ParticipantPayload,
-} from '../../../../packages/shared/src/index';
+} from '@vn-trpg/shared';
 
 // ── 상태 타입들 ──────────────────────────────────────────────
 interface Toast {
@@ -411,6 +411,8 @@ export default function SessionViewer({ sessionId }: { sessionId: string }) {
     fetchDictionary();
     // 세션 표시 이름 로드 (사이드바 제목용 — 못 불러오면 sessionId로 대체)
     fetchSessionName();
+    // 계정에 저장된 뷰어 기본 설정(오토모드/배속) 로드 — 못 불러오면 기본값 유지
+    fetchViewerSettings();
 
     return () => {
       socket.disconnect();
@@ -430,6 +432,22 @@ export default function SessionViewer({ sessionId }: { sessionId: string }) {
       }
     } catch {
       // 실패해도 sessionId를 그대로 표시하므로 무시
+    }
+  }
+
+  async function fetchViewerSettings() {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/me`,
+        { credentials: 'include' }
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      const settings = data?.viewerSettings;
+      if (typeof settings?.defaultAutoMode === 'boolean') setAutoMode(settings.defaultAutoMode);
+      if (typeof settings?.defaultTypingSpeed === 'number') setAutoSpeed(settings.defaultTypingSpeed);
+    } catch {
+      // 실패해도 기본값(오토모드 꺼짐, 1.0배속)으로 계속 진행
     }
   }
 

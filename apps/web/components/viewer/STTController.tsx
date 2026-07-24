@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { SOCKET_EVENTS } from '../../../../packages/shared/src/index';
+import { SOCKET_EVENTS } from '@vn-trpg/shared';
 import type { Socket } from 'socket.io-client';
 
 interface STTControllerProps {

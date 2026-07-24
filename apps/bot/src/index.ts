@@ -23,6 +23,7 @@ import bgmCmd from './commands/bgm';
 import rollCmd from './commands/roll';
 import hpCmd from './commands/hp';
 import mpCmd from './commands/mp';
+import sessionCreateCmd from './commands/sessionCreate';
 import sessionStartCmd from './commands/sessionStart';
 import sessionEndCmd from './commands/sessionEnd';
 import expressionCmd from './commands/expression';
@@ -51,6 +52,7 @@ const commands: SlashCommandType[] = [
   rollCmd,
   hpCmd,
   mpCmd,
+  sessionCreateCmd,
   sessionStartCmd,
   sessionEndCmd,
   expressionCmd,

@@ -131,7 +131,29 @@ router.delete('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
     { discordId: req.user!.discordId },
     { $pull: { characters: character._id } }
   );
+  // 지금 막 삭제한 캐릭터가 "선택된" 캐릭터였다면, 존재하지 않는 캐릭터를
+  // 계속 가리키지 않도록 선택도 함께 해제한다.
+  await User.updateOne(
+    { discordId: req.user!.discordId, activeCharacterId: character._id },
+    { $unset: { activeCharacterId: '' } }
+  );
   return res.json({ success: true });
+}));
+
+// 세션 참가 시 사용할 캐릭터로 선택 (한 유저가 여러 캐릭터를 가질 수 있어서,
+// 그중 어떤 걸 쓸지 명시적으로 지정하는 용도)
+router.post('/:id/select', asyncHandler(async (req: AuthRequest, res: Response) => {
+  const character = await Character.findOne({
+    _id: req.params.id,
+    ownerId: req.user!.discordId,
+  });
+  if (!character) return res.status(404).json({ error: '캐릭터를 찾을 수 없습니다.' });
+
+  await User.updateOne(
+    { discordId: req.user!.discordId },
+    { activeCharacterId: character._id }
+  );
+  return res.json({ success: true, activeCharacterId: character._id });
 }));
 
 export default router;

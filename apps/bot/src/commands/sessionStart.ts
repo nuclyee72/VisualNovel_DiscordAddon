@@ -1,15 +1,15 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
 import { socket, activeSessions } from '../state';
-import { SOCKET_EVENTS } from '../../../../packages/shared/src/index';
+import { SOCKET_EVENTS } from '@vn-trpg/shared';
 import axios from 'axios';
 import type { SlashCommandType } from '../types';
 
 export default {
   data: new SlashCommandBuilder()
     .setName('세션시작')
-    .setDescription('디스코드 채널을 비주얼 노벨 세션과 연결합니다.')
+    .setDescription('이미 만들어진 세션을 이 채널에 (재)연결합니다. 새 세션은 /세션생성을 사용하세요.')
     .addStringOption((opt) =>
-      opt.setName('세션id').setDescription('연결할 세션 ID (웹 대시보드에서 확인)').setRequired(true)
+      opt.setName('세션id').setDescription('연결할 세션 ID (대시보드의 복사 버튼으로 확인)').setRequired(true)
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
@@ -55,7 +55,7 @@ export default {
         `✅ **세션 연결 완료!**\n` +
         `세션명: **${session.name}**\n` +
         `🌐 웹 뷰어: ${webUrl}\n` +
-        `위 링크를 플레이어들에게 공유하세요.`
+        `이 서버 멤버라면 누구나 별도 참가 절차 없이 위 링크로 바로 입장할 수 있습니다.`
       );
     } catch (err) {
       console.error('[Bot] /세션시작 error:', err);
